@@ -113,9 +113,15 @@ While `window.speechSynthesis` offers zero-cost, offline synthesis, it suffers f
 
 #### 1. Audio-Text Karaoke Synchronization
 Standard HTML5 `<audio>` element `timeupdate` events fire at a frequency of **~4 Hz (4 times per second, or every 250ms)**. Because spoken English words often last only 100ms–350ms, a 4 Hz timer wakes up too slowly and skips words before the code can highlight them.
-* **The 60 FPS Animation Loop Solution:** Run a `requestAnimationFrame` clock querying `audio.currentTime` directly at **60 Hz (60 times per second, or every ~16.6ms)** and perform an $O(\log N)$ binary search over the sorted speech marks array. This eliminates visual latency and ensures fluid, word-by-word tracking:
+* **The 60 FPS Animation Loop Solution:** Run a `requestAnimationFrame` clock querying `audio.currentTime` directly at **60 Hz (60 times per second, or every ~16.6ms)**.
+* **Optimal Synchronization Algorithm (`lower_bound` + Directional Pruning):**
+  1. *Directional Search-Space Pruning:* Comparing `currentTime` against `lastTime` immediately halves the search space:
+     - If `currentTime >= lastTime` (normal playback or forward seek), the new word cannot be before `lastIndex`. Prune the left: search range is $[i_{\text{last}}, N-1]$.
+     - If `currentTime < lastTime` (scrubbed backward), prune the right: search range is $[0, i_{\text{last}}]$.
+  2. *Monotonic `lower_bound` Lookup:* Since word start times (`audioOffsetMs`) are strictly monotonically increasing, binary search finds the candidate word that started most recently at or before `currentTime`.
+  3. *Single Pause Boundary Check:* Finally, verify `currentTime <= candidate.start + candidate.duration`. If true, highlight the word; if false, the audio is in a breath/pause gap between words (returns `-1`).
 
-$$\text{Active Word Index} = \text{BinarySearch}\big(\text{speechMarks}, \text{currentTime}\big)$$
+$$\text{Candidate Index} = \text{LowerBound}\big(\text{speechMarks.audioOffsetMs}, \text{currentTime}, [\text{low}, \text{high}]\big)$$
 
 #### 2. Speed Adjustment Without Pitch Distortion
 * **Client-Side:** Setting `audio.playbackRate = 0.8` uses the browser's built-in Waveform Similarity Overlap-Add (WSOLA) phase-vocoder (`preservesPitch = true`). Because `audio.currentTime` automatically advances in media-time, timestamp synchronization remains aligned.
@@ -220,6 +226,8 @@ export function useKaraokeSync(
 ) {
   const [activeWordIndex, setActiveWordIndex] = useState<number>(-1);
   const animFrameRef = useRef<number | null>(null);
+  const lastIndexRef = useRef<number>(-1);
+  const lastTimeRef = useRef<number>(0);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -227,29 +235,38 @@ export function useKaraokeSync(
 
     const syncClock = () => {
       const currentMs = audio.currentTime * 1000;
-      
-      // Binary search over sorted speech marks
-      let low = 0;
-      let high = speechMarks.length - 1;
-      let match = -1;
+      const prevTime = lastTimeRef.current;
+      const prevIndex = lastIndexRef.current;
 
+      // 1. Directional search space pruning
+      let low = (currentMs >= prevTime && prevIndex >= 0) ? prevIndex : 0;
+      let high = (currentMs < prevTime && prevIndex >= 0) ? prevIndex : speechMarks.length - 1;
+
+      // 2. Binary search (lower_bound) to find most recent word that started <= currentMs
+      let candidate = -1;
       while (low <= high) {
         const mid = (low + high) >> 1;
-        const mark = speechMarks[mid];
-        const start = mark.audioOffsetMs;
-        const end = start + mark.durationMs;
-
-        if (currentMs >= start && currentMs <= end) {
-          match = mid;
-          break;
-        } else if (currentMs < start) {
-          high = mid - 1;
+        if (speechMarks[mid].audioOffsetMs <= currentMs) {
+          candidate = mid;
+          low = mid + 1; // Look for a closer start time on the right
         } else {
-          low = mid + 1;
+          high = mid - 1;
         }
       }
 
-      setActiveWordIndex(match);
+      // 3. Verify if currentTime falls inside candidate word, or within breath pause
+      let activeIndex = -1;
+      if (candidate >= 0) {
+        const mark = speechMarks[candidate];
+        if (currentMs <= mark.audioOffsetMs + mark.durationMs) {
+          activeIndex = candidate;
+        }
+      }
+
+      lastIndexRef.current = candidate;
+      lastTimeRef.current = currentMs;
+      setActiveWordIndex(activeIndex);
+
       if (!audio.paused && !audio.ended) {
         animFrameRef.current = requestAnimationFrame(syncClock);
       }
