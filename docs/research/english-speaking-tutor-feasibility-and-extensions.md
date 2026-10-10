@@ -20,7 +20,7 @@
    - [3.3 In-Browser Audio Capture via AudioWorklet](#33-in-browser-audio-capture-via-audioworklet)
    - [3.4 The Science of Language Acquisition & Shadowing](#34-the-science-of-language-acquisition--shadowing)
    - [3.5 Connected Speech Phenomena & Visual Markup](#35-connected-speech-phenomena--visual-markup)
-   - [3.6 Pitch & Intonation Contour Visualization (YIN + DTW)](#36-pitch--intonation-contour-visualization-yin--dtw)
+   - [3.6 Neural Prosody, Intonation & Pitch Evaluation](#36-neural-prosody-intonation--pitch-evaluation)
    - [3.7 Text Chunking into Prosodic "Thought Groups"](#37-text-chunking-into-prosodic-thought-groups)
    - [3.8 Interactive UX Concepts: A/B Voice Player, LLM Coach & Phoneme Mastery Matrix](#38-interactive-ux-concepts-ab-voice-player-llm-coach--phoneme-mastery-matrix)
 4. [Primary Source & Academic Literature Citations](#4-primary-source--academic-literature-citations)
@@ -32,7 +32,7 @@
 The initial concept for this application—*submitting a paragraph of English text to a text-to-speech (TTS) engine, listening to authentic native pronunciation, and repeating it aloud to match tone and cadence*—is an intuitive starting point. However, rigorous research into cloud speech engineering and Second Language Acquisition (SLA) pedagogy yields two foundational findings:
 
 1. **Text-to-Speech Engine Selection:** Not all TTS engines are created equal for language education. Standard generic voice APIs (like OpenAI Audio) lack word-level timestamp alignment and International Phonetic Alphabet (IPA) control. Others (like AWS Polly) impose severe architectural penalties—requiring two separate API calls to retrieve both audio and speech marks, doubling billing costs. **Microsoft Azure AI Speech is the clear industry leader for language learning**, providing native word-boundary timestamps, visemes (lip-sync mouth poses), full IPA SSML, and over 40 native English accents in a single, cost-effective call ($16.00 / 1M characters).
-2. **Pedagogical Enhancement (Closing the Loop):** Passive listening and unguided repetition alone risk reinforcing **fossilized pronunciation errors** due to *perceptual deafness* (learners cannot hear the acoustic discrepancy between their own voice and the native speaker). By transforming the application into a **closed-loop pronunciation laboratory**—integrating acoustic forced alignment via **Azure AI Speech Pronunciation Assessment**, **in-browser 16 kHz AudioWorklet recording**, **prosodic thought-group chunking**, **Dynamic Time Warping (DTW) pitch contour overlays**, **synchronized A/B voice comparison**, and **LLM biomechanical mouth/tongue coaching**—the product elevates from a basic playback tool into a comprehensive, research-backed speaking coach.
+2. **Pedagogical Enhancement (Closing the Loop):** Passive listening and unguided repetition alone risk reinforcing **fossilized pronunciation errors** due to *perceptual deafness* (learners cannot hear the acoustic discrepancy between their own voice and the native speaker). By transforming the application into a **closed-loop pronunciation laboratory**—integrating acoustic forced alignment via **Azure AI Speech Pronunciation Assessment**, **in-browser 16 kHz AudioWorklet recording**, **prosodic thought-group chunking**, **neural prosody and intonation scoring**, **synchronized A/B voice comparison**, and **LLM biomechanical mouth/tongue coaching**—the product elevates from a basic playback tool into a comprehensive, research-backed speaking coach.
 
 ---
 
@@ -260,33 +260,44 @@ Learners frequently pronounce English as a sequence of isolated citation-form wo
 
 ---
 
-### 3.6 Pitch & Intonation Contour Visualization (YIN + DTW)
+### 3.6 Neural Prosody, Intonation & Pitch Evaluation
 
-Intonation conveys syntactic intent (questions vs. statements), emphasis, and pragmatic emotion. Visualizing pitch bridges the auditory gap for learners.
+Intonation conveys syntactic intent (e.g., questions vs. statements), contrastive emphasis, and pragmatic emotion. Modern pronunciation assessment evaluates prosody holistically using deep neural models rather than legacy 1D heuristic curve matching.
 
 ```
-Frequency (Semitones relative to median)
+Relative Pitch (Semitones relative to median)
     ▲
- +3 ┼                      Native TTS Pitch (Target)
+ +3 ┼                      Target Pitch Contour (Model)
  +2 ┼                   ╭────────╮
  +1 ┼          ╭────────╯        ╰──────╮
   0 ┼──────────╯                        ╰─────────── (Baseline)
  -1 ┼           . . . . . . . . . . . . . 
- -2 ┼     Learner Pitch (Aligned via Dynamic Time Warping)
-    └─────┴───────────┴──────────┴──────────┴──────────► Aligned Time
+ -2 ┼     Learner Pitch Contour (Neural Estimation via SPICE / CREPE)
+    └─────┴───────────┴──────────┴──────────┴──────────► Normalized Time
          "What"      "are"      "YOU"    "doing?"
 ```
 
-#### 1. Fundamental Frequency ($F_0$) Extraction: The YIN Algorithm
-The **YIN algorithm** (de Cheveigné & Kawahara, 2002) computes pitch with high precision by using the Cumulative Mean Normalized Difference Function:
-$$d'_t(\tau) = \begin{cases} 1 & \text{if } \tau = 0 \\ \frac{d_t(\tau)}{\frac{1}{\tau}\sum_{j=1}^\tau d_t(j)} & \text{otherwise} \end{cases}$$
-followed by parabolic interpolation. Implemented via Web Audio or WebAssembly running at 10ms frame hops (a 100 Hz feature rate, evaluating pitch 100 times per second).
+#### 1. Holistic Neural Prosody Assessment (Azure AI Speech `ProsodyScore`)
+In modern CAPT systems, prosody cannot be evaluated accurately by comparing raw pitch curves in isolation. Azure AI Speech Pronunciation Assessment utilizes deep transformer acoustic models trained on extensive native corpora to output a comprehensive **`ProsodyScore` (0–100)** that jointly evaluates four acoustic dimensions:
+* **Intonation Contour:** Evaluates whether pitch contours rise, fall, or sustain correctly based on sentence structure (e.g., rising intonation for yes/no questions, falling intonation for statements and wh-questions).
+* **Lexical & Nuclear Stress:** Detects whether acoustic energy, duration, and pitch peaks coincide with the primary stressed syllables and contrastive focus words.
+* **Rhythm & Isochrony:** Analyzes duration ratios between stressed and unstressed syllables to ensure natural English stress-timing rather than staccato syllable-timed pacing.
+* **Pause Insertion & Juncture:** Detects inappropriate mid-clause hesitation pauses and verifies that breath pauses align with syntactic thought-group boundaries.
 
-#### 2. Dynamic Time Warping (DTW) & Semitone Normalization
-* **Pitch Normalization:** Acoustic pitch frequency in Hz measures physical vocal cord vibrations per second—typically ~100–150 vibrations/sec for adult male voices vs. ~180–240 vibrations/sec for adult female voices. When asking a question, intonation rises and vocal cords flap faster. Converting raw Hertz to semitones relative to the speaker's median pitch:
+#### 2. Why Legacy Heuristics (YIN + DTW) Are Obsolete for Scoring
+* **Acoustic Timbre and Anatomy Confounding:** Legacy autocorrelation algorithms like YIN (2002) attempt 1D fundamental frequency tracking ($F_0$), but comparing raw pitch between different speakers (e.g., male learner vs. female TTS reference) using Dynamic Time Warping (DTW, 1970s) Euclidean distance produces distorted, uncalibrated scores.
+* **DTW Masks Timing Defects:** DTW warps time non-linearly to force alignment. If a learner stretches an unstressed word unnaturally, DTW compresses the alignment and conceals the rhythmic mistake.
+* **Modern Standard:** Real scoring is performed via deep neural acoustic embeddings and Goodness of Pronunciation (GOP) posteriors.
+
+#### 3. Client-Side Neural Pitch Estimation for UI Visualization (SPICE & CREPE)
+When visual intonation contours are rendered in the UI to give learners real-time visual feedback on melodic direction:
+* **Deep Neural Pitch Estimators:** Rather than hand-crafted autocorrelation, modern client-side pitch tracking runs lightweight neural networks directly in the browser via ONNX Runtime Web or TensorFlow.js:
+  * **SPICE (Gfeller et al., 2020):** A self-supervised neural pitch estimator (Google) optimized for speech and singing (<3 MB model weight), extracting fundamental frequency directly from raw audio without susceptibility to octave errors.
+  * **CREPE (Kim et al., 2018):** A deep convolutional neural network operating directly on raw time-domain waveforms, providing high noise robustness.
+* **Semitone Baseline Normalization:**
   $$\text{Pitch}_{\text{norm}}(t) = 12 \cdot \log_2\left(\frac{F_0(t)}{F_{0,\text{median}}}\right)$$
-  normalizes the baseline to $0\text{ semitones}$, allowing valid shape comparison.
-* **DTW Alignment:** Because learners speak at varying speeds, Dynamic Time Warping aligns the time axes of the user's audio and the reference model to display an accurate pitch curve overlay.
+  Converting raw Hertz to semitones relative to each speaker's median pitch centers any vocal range (bass, tenor, alto, soprano) at a $0\text{ semitones}$ baseline, enabling intuitive visual comparison of melodic shapes (rises and falls) across different voice types.
+
 
 ---
 
@@ -357,7 +368,7 @@ The application tracks a persistent **Phonetic Mastery Matrix** using the Free S
 7. **Kadota, S. (2019).** *Shadowing as a Language Acquisition Technique: The Nature of the Motor Theory of Speech Perception and the Internal Phonological Optimization Model.* Routledge.
 8. **Hamada, Y. (2016).** *Teaching EFL Learners Shadowing for Listening: Developing learners' automaticity of bottom-up processing.* Routledge.
 9. **Baddeley, A. (2000).** *The episodic buffer: a new component of working memory?* Trends in Cognitive Sciences, 4(11), 417-423.
-10. **de Cheveigné, A., & Kawahara, H. (2002).** *YIN, a fundamental frequency estimator for speech and music.* The Journal of the Acoustical Society of America, 111(4), 1917-1930.
-11. **Müller, M. (2007).** *Dynamic Time Warping.* Information Retrieval for Music and Motion, Springer, 69-84.
+10. **Kim, J. W., Salamon, J., Li, P., & Bello, J. P. (2018).** *CREPE: A Convolutional Representation for Pitch Estimation.* IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP), 161-165.
+11. **Gfeller, B., Frank, C., Roblek, D., Sharifi, M., Tagliasacchi, M., & Zeghidour, N. (2020).** *SPICE: Self-Supervised Pitch Estimation.* IEEE/ACM Transactions on Audio, Speech, and Language Processing, 28, 1118-1128.
 12. **Abercrombie, D. (1967).** *Elements of General Phonetics.* Edinburgh University Press. (Isochrony and stress-timing foundations).
 13. **Celce-Murcia, M., Brinton, D. M., & Goodwin, J. M. (2010).** *Teaching Pronunciation: A Course Book and Reference Guide.* Cambridge University Press.
