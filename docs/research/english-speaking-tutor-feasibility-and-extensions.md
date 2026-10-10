@@ -112,8 +112,8 @@ While `window.speechSynthesis` offers zero-cost, offline synthesis, it suffers f
 ### 2.4 Critical Technical Requirements for Pronunciation Learning
 
 #### 1. Audio-Text Karaoke Synchronization
-Standard HTML5 `<audio>` element `timeupdate` events fire at a frequency of **~4 Hz (every 250ms)**. Because English words are frequently spoken in 100ms–350ms, relying on `timeupdate` leads to noticeable lag and skipped words.
-* **The 60 FPS Animation Loop Solution:** Run a `requestAnimationFrame` clock querying `audio.currentTime` directly and perform an $O(\log N)$ binary search over the sorted speech marks array:
+Standard HTML5 `<audio>` element `timeupdate` events fire at a frequency of **~4 Hz (4 times per second, or every 250ms)**. Because spoken English words often last only 100ms–350ms, a 4 Hz timer wakes up too slowly and skips words before the code can highlight them.
+* **The 60 FPS Animation Loop Solution:** Run a `requestAnimationFrame` clock querying `audio.currentTime` directly at **60 Hz (60 times per second, or every ~16.6ms)** and perform an $O(\log N)$ binary search over the sorted speech marks array. This eliminates visual latency and ensures fluid, word-by-word tracking:
 
 $$\text{Active Word Index} = \text{BinarySearch}\big(\text{speechMarks}, \text{currentTime}\big)$$
 
@@ -359,6 +359,7 @@ Standard browser `MediaRecorder` produces compressed WebM/Opus or Ogg files that
 The modern standard uses an **`AudioWorklet`** running on the dedicated Web Audio rendering thread:
 1. Captures 32-bit floating-point audio from `getUserMedia()`.
 2. Downsamples native 44.1/48 kHz to 16 kHz on the fly.
+   > **Why 16 kHz?** Frequency here refers to digital sample rate (snapshot measurements per second). By the Nyquist-Shannon theorem, capturing a sound requires a sample rate at least 2× its highest acoustic frequency. Because all human speech intelligibility (vowels and consonants like *s*, *th*) lives below 8,000 Hz, a 16 kHz rate ($2 \times 8\text{ kHz} = 16\text{ kHz}$, or 16,000 samples/sec) preserves 100% of speech phonetics with crystal clarity while keeping payload sizes 66% smaller than 48 kHz music streams.
 3. Converts samples to 16-bit signed Linear PCM integers.
 4. Uses an `AnalyserNode` to compute real-time Root-Mean-Square (RMS) volume and auto-detect voice start/stop (Voice Activity Detection - VAD).
 5. Transmits raw 16 kHz PCM directly to the server via WebSocket or HTTP POST.
@@ -454,10 +455,10 @@ Frequency (Semitones relative to median)
 #### 1. Fundamental Frequency ($F_0$) Extraction: The YIN Algorithm
 The **YIN algorithm** (de Cheveigné & Kawahara, 2002) computes pitch with high precision by using the Cumulative Mean Normalized Difference Function:
 $$d'_t(\tau) = \begin{cases} 1 & \text{if } \tau = 0 \\ \frac{d_t(\tau)}{\frac{1}{\tau}\sum_{j=1}^\tau d_t(j)} & \text{otherwise} \end{cases}$$
-followed by parabolic interpolation. Implemented via Web Audio or WebAssembly running at 10ms frame hops (100 Hz feature rate).
+followed by parabolic interpolation. Implemented via Web Audio or WebAssembly running at 10ms frame hops (a 100 Hz feature rate, evaluating pitch 100 times per second).
 
 #### 2. Dynamic Time Warping (DTW) & Semitone Normalization
-* **Pitch Normalization:** Males (~100–150 Hz) and females (~180–240 Hz) operate in different pitch registers. Converting raw Hertz to semitones relative to the speaker's median pitch:
+* **Pitch Normalization:** Acoustic pitch frequency in Hz measures physical vocal cord vibrations per second—typically ~100–150 vibrations/sec for adult male voices vs. ~180–240 vibrations/sec for adult female voices. When asking a question, intonation rises and vocal cords flap faster. Converting raw Hertz to semitones relative to the speaker's median pitch:
   $$\text{Pitch}_{\text{norm}}(t) = 12 \cdot \log_2\left(\frac{F_0(t)}{F_{0,\text{median}}}\right)$$
   normalizes the baseline to $0\text{ semitones}$, allowing valid shape comparison.
 * **DTW Alignment:** Because learners speak at varying speeds, Dynamic Time Warping aligns the time axes of the user's audio and the reference model to display an accurate pitch curve overlay.
