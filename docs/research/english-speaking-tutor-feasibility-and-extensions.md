@@ -186,13 +186,13 @@ The modern standard uses an **`AudioWorklet`** running on the dedicated Web Audi
 2. Downsamples native 44.1/48 kHz to 16 kHz on the fly.
    > **Why 16 kHz?** Frequency here refers to digital sample rate (snapshot measurements per second). By the Nyquist-Shannon theorem, capturing a sound requires a sample rate at least 2× its highest acoustic frequency. Because all human speech intelligibility (vowels and consonants like *s*, *th*) lives below 8,000 Hz, a 16 kHz rate ($2 \times 8\text{ kHz} = 16\text{ kHz}$, or 16,000 samples/sec) preserves 100% of speech phonetics with crystal clarity while keeping payload sizes 66% smaller than 48 kHz music streams.
 3. Converts samples to 16-bit signed Linear PCM integers.
-4. Uses an `AnalyserNode` to compute real-time Root-Mean-Square (RMS) volume and auto-detect voice start/stop (Voice Activity Detection - VAD).
-5. Transmits raw 16 kHz PCM directly to the server via WebSocket or HTTP POST.
+4. Transmits raw 16 kHz PCM to the speech assessment engine. Azure handles Voice Activity Detection (silence endpointing) natively, automatically detecting when the user begins and finishes speaking without requiring custom client-side VAD.
+5. *(Optional visual feedback)*: If the UI needs a standard microphone volume indicator or waveform so the user can verify their mic is working, a standard Web Audio `AnalyserNode` can read volume levels in parallel without adding complexity.
 
 ```
-[ Microphone ] ──► [ AudioWorklet (Downsample 16kHz + Int16 PCM) ] ──► [ Azure Assessment API ]
+[ Microphone ] ──► [ AudioWorklet (Downsample 16kHz + Int16 PCM) ] ──► [ Azure Assessment API (Native VAD) ]
                           │
-                          └──► [ AnalyserNode ] ──► [ Waveform Canvas & Live YIN Pitch ]
+                          └──► [ Optional: AnalyserNode ] ──► [ Simple Mic Level Indicator ]
 ```
 
 ---
