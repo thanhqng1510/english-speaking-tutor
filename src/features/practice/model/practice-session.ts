@@ -1,39 +1,50 @@
-export interface PracticeSession {
-  getText(): string;
-  getCharacterCount(): number;
-  getMaxCharacters(): number;
-  isValid(): boolean;
-  setText(value: string): void;
-  clear(): void;
-}
-
 export const MAX_PRACTICE_CHARACTERS = 500;
 
-export function createPracticeSession(maxCharacters = MAX_PRACTICE_CHARACTERS): PracticeSession {
-  let currentText = "";
+export interface PracticeSessionState {
+  text: string;
+  characterCount: number;
+  maxCharacters: number;
+  isValid: boolean;
+}
 
+export function clampPracticeText(
+  text: string,
+  maxCharacters = MAX_PRACTICE_CHARACTERS
+): string {
+  if (text.length > maxCharacters) {
+    return text.slice(0, maxCharacters);
+  }
+  return text;
+}
+
+export function createPracticeSessionState(
+  initialText = "",
+  maxCharacters = MAX_PRACTICE_CHARACTERS
+): PracticeSessionState {
+  const text = clampPracticeText(initialText, maxCharacters);
   return {
-    getText() {
-      return currentText;
-    },
-    getCharacterCount() {
-      return currentText.length;
-    },
-    getMaxCharacters() {
-      return maxCharacters;
-    },
-    isValid() {
-      return currentText.trim().length > 0 && currentText.length <= maxCharacters;
-    },
-    setText(value: string) {
-      if (value.length > maxCharacters) {
-        currentText = value.slice(0, maxCharacters);
-      } else {
-        currentText = value;
-      }
-    },
-    clear() {
-      currentText = "";
-    },
+    text,
+    characterCount: text.length,
+    maxCharacters,
+    isValid: text.trim().length > 0 && text.length <= maxCharacters,
   };
+}
+
+export function updatePracticeSessionText(
+  state: PracticeSessionState,
+  newText: string
+): PracticeSessionState {
+  const text = clampPracticeText(newText, state.maxCharacters);
+  return {
+    ...state,
+    text,
+    characterCount: text.length,
+    isValid: text.trim().length > 0 && text.length <= state.maxCharacters,
+  };
+}
+
+export function clearPracticeSessionText(
+  state: PracticeSessionState
+): PracticeSessionState {
+  return updatePracticeSessionText(state, "");
 }

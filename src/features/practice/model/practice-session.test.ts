@@ -1,41 +1,52 @@
 import { describe, it, expect } from "vitest";
-import { createPracticeSession } from "./practice-session";
+import {
+  createPracticeSessionState,
+  updatePracticeSessionText,
+  clearPracticeSessionText,
+  clampPracticeText,
+} from "./practice-session";
 
 describe("Practice Session State Model", () => {
   it("initializes with empty text, 0 character count, and 500 max bound", () => {
-    const session = createPracticeSession();
+    const session = createPracticeSessionState();
 
-    expect(session.getText()).toBe("");
-    expect(session.getCharacterCount()).toBe(0);
-    expect(session.getMaxCharacters()).toBe(500);
-    expect(session.isValid()).toBe(false);
+    expect(session.text).toBe("");
+    expect(session.characterCount).toBe(0);
+    expect(session.maxCharacters).toBe(500);
+    expect(session.isValid).toBe(false);
   });
 
   it("updates text and accurately tracks character count when typing", () => {
-    const session = createPracticeSession();
-    session.setText("English pronunciation practice");
+    const session = createPracticeSessionState();
+    const updated = updatePracticeSessionText(
+      session,
+      "English pronunciation practice"
+    );
 
-    expect(session.getText()).toBe("English pronunciation practice");
-    expect(session.getCharacterCount()).toBe(30);
-    expect(session.isValid()).toBe(true);
+    expect(updated.text).toBe("English pronunciation practice");
+    expect(updated.characterCount).toBe(30);
+    expect(updated.isValid).toBe(true);
   });
 
   it("enforces strict bounds at 500 characters by clamping excess input", () => {
-    const session = createPracticeSession();
     const longInput = "a".repeat(550);
-    session.setText(longInput);
+    const clamped = clampPracticeText(longInput, 500);
 
-    expect(session.getText().length).toBe(500);
-    expect(session.getCharacterCount()).toBe(500);
+    expect(clamped.length).toBe(500);
+
+    const session = createPracticeSessionState();
+    const updated = updatePracticeSessionText(session, longInput);
+
+    expect(updated.text.length).toBe(500);
+    expect(updated.characterCount).toBe(500);
   });
 
   it("resets text and character count when cleared", () => {
-    const session = createPracticeSession();
-    session.setText("Some practice sentence");
-    session.clear();
+    const session = createPracticeSessionState("Some practice sentence");
+    const cleared = clearPracticeSessionText(session);
 
-    expect(session.getText()).toBe("");
-    expect(session.getCharacterCount()).toBe(0);
-    expect(session.isValid()).toBe(false);
+    expect(cleared.text).toBe("");
+    expect(cleared.characterCount).toBe(0);
+    expect(cleared.isValid).toBe(false);
   });
 });
