@@ -58,15 +58,13 @@ export function PracticeWorkspace({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 pt-2">
-        <div className="space-y-3">
-          <label
-            htmlFor={textareaId}
-            className="text-sm sm:text-base font-medium leading-normal text-foreground/90 peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
+        <div>
+          <label htmlFor={textareaId} className="sr-only">
             Practice English text
           </label>
           <Textarea
             id={textareaId}
+            aria-label="Practice English text"
             aria-describedby={counterId}
             value={text}
             onChange={handleChange}
