@@ -43,23 +43,25 @@ export function PracticeWorkspace({
   };
 
   return (
-    <Card className={`w-full max-w-2xl mx-auto shadow-sm border ${className}`}>
-      <CardHeader>
-        <div className="flex items-center gap-2">
+    <Card
+      className={`w-full max-w-2xl mx-auto shadow-sm border [--card-spacing:--spacing(6)] sm:[--card-spacing:--spacing(8)] ${className}`}
+    >
+      <CardHeader className="space-y-2.5">
+        <div className="flex items-center gap-2.5">
           <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
-          <CardTitle className="text-xl font-semibold tracking-tight">
+          <CardTitle className="text-xl sm:text-2xl font-semibold tracking-tight">
             Practice Workspace
           </CardTitle>
         </div>
-        <CardDescription>
+        <CardDescription className="text-sm sm:text-base leading-relaxed text-muted-foreground">
           Paste or type an English sentence or paragraph (up to 500 characters) to practice pronunciation, cadence, and stress.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
+      <CardContent className="space-y-6 pt-2">
+        <div className="space-y-3">
           <label
             htmlFor={textareaId}
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            className="text-sm sm:text-base font-medium leading-normal text-foreground/90 peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             Practice English text
           </label>
@@ -69,13 +71,13 @@ export function PracticeWorkspace({
             value={text}
             onChange={handleChange}
             maxLength={maxCharacters}
-            rows={5}
+            rows={6}
             placeholder="Paste or type English text here to begin your pronunciation session..."
-            className="resize-none font-normal text-base leading-relaxed p-3"
+            className="resize-none font-normal text-base sm:text-lg leading-relaxed p-4 sm:p-5 min-h-[170px] sm:min-h-[190px]"
           />
         </div>
 
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center justify-between text-sm pt-1">
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -84,9 +86,9 @@ export function PracticeWorkspace({
               onClick={clear}
               disabled={characterCount === 0}
               aria-label="Clear text"
-              className="text-muted-foreground hover:text-foreground h-8 px-2"
+              className="text-muted-foreground hover:text-foreground h-9 px-3 gap-1.5 text-sm"
             >
-              <Trash2 className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
               Clear text
             </Button>
           </div>
@@ -95,28 +97,29 @@ export function PracticeWorkspace({
             id={counterId}
             data-testid="character-counter"
             aria-live="polite"
-            className={`font-mono text-xs px-2 py-1 rounded transition-colors ${
+            className={`font-mono text-xs sm:text-sm px-3 py-1 rounded-md transition-colors ${
               isAtLimit
                 ? "text-destructive font-semibold bg-destructive/10"
                 : isNearLimit
                 ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-                : "text-muted-foreground bg-muted/50"
+                : "text-muted-foreground bg-muted/60"
             }`}
           >
             {characterCount} / {maxCharacters}
           </div>
         </div>
 
-        <div className="pt-2 flex justify-end">
+        <div className="pt-4 flex justify-end">
           <Button
             type="button"
             onClick={handleStart}
             disabled={!isValid}
             aria-label="Start practice"
-            className="w-full sm:w-auto"
+            size="lg"
+            className="w-full sm:w-auto h-11 px-6 text-base font-medium"
           >
             Start practice
-            <ArrowRight className="h-4 w-4 ml-1.5" aria-hidden="true" />
+            <ArrowRight className="h-4 w-4 ml-2" aria-hidden="true" />
           </Button>
         </div>
       </CardContent>
