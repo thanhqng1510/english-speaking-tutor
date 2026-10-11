@@ -14,6 +14,9 @@ dist/
 build/
 .next/
 out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
 
 # Environment and secrets
 .env
