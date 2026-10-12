@@ -1,0 +1,118 @@
+import { createPracticeParagraph } from "./builder";
+import type { PracticeParagraph } from "./types";
+
+export const TUNING_PARAGRAPHS: readonly PracticeParagraph[] = Object.freeze([
+  // Exam & Interview Speeches (4 items: 1 short, 2 medium, 1 long)
+  createPracticeParagraph({
+    id: "tune-exam-01",
+    title: "Renewable energy transition",
+    text: "The growing demand for clean and renewable energy has transformed how modern cities design their power grids.",
+    set: "tuning",
+    category: "exam",
+    lengthTier: "short",
+    tags: ["long-subject"],
+  }),
+  createPracticeParagraph({
+    id: "tune-exam-02",
+    title: "Academic research grant milestone",
+    text: "In fiscal year 2024, our international research institute secured $3.2M in competitive grants, published 48 peer-reviewed articles, and expanded clinical partnerships across the EU, Japan, and Canada.",
+    set: "tuning",
+    category: "exam",
+    lengthTier: "medium",
+    tags: ["numbers-dates", "list"],
+  }),
+  createPracticeParagraph({
+    id: "tune-exam-03",
+    title: "Defending research methodology",
+    text: "The lead investigator reviewed the disputed data points with her team and defended the experimental methodology before the academic committee without hesitation, answering every critical counterargument.",
+    set: "tuning",
+    category: "exam",
+    lengthTier: "medium",
+    tags: ["compound-predicate"],
+  }),
+  createPracticeParagraph({
+    id: "tune-exam-04",
+    title: "Corporate integrity keynote address",
+    text: "The candidate standing confidently at the podium paused before addressing the audience. 'Integrity is not simply a buzzword for our organization,' she declared, 'it is the foundational standard that guides every decision we make.' When asked about sudden regulatory changes, she acknowledged the difficulties, explained their mitigation strategy in detail, and reiterated their unwavering long-term commitment.",
+    set: "tuning",
+    category: "exam",
+    lengthTier: "long",
+    tags: ["long-subject", "dialogue"],
+  }),
+
+  // Everyday Conversational Narratives (4 items: 1 short, 2 medium, 1 long)
+  createPracticeParagraph({
+    id: "tune-everyday-01",
+    title: "Rushing to catch the bus",
+    text: "She grabbed her raincoat from the hook by the front door and ran straight to the bus stop without looking back.",
+    set: "tuning",
+    category: "everyday",
+    lengthTier: "short",
+    tags: ["compound-predicate"],
+  }),
+  createPracticeParagraph({
+    id: "tune-everyday-02",
+    title: "Searching for house keys after picnic",
+    text: "As we were packing up the picnic blanket, Marcus laughed and asked, 'Did you remember the house keys, or are we locked out again?' I checked my pockets twice and stammered, 'Wait, I... I thought you took them,' before finally finding them in my jacket.",
+    set: "tuning",
+    category: "everyday",
+    lengthTier: "medium",
+    tags: ["dialogue", "hesitation"],
+  }),
+  createPracticeParagraph({
+    id: "tune-everyday-03",
+    title: "Early flight checklist",
+    text: "Before my flight at 6:45 AM tomorrow morning, I need to pick up my passport from the desk, buy a travel adapter, grab some fresh coffee, and print two boarding passes for my connection through terminal 3.",
+    set: "tuning",
+    category: "everyday",
+    lengthTier: "medium",
+    tags: ["numbers-dates", "list"],
+  }),
+  createPracticeParagraph({
+    id: "tune-everyday-04",
+    title: "Weekend bakery queue and morning stroll",
+    text: "The small neighborhood bakery that opened down our street last autumn always has a long queue stretching around the corner on Saturday mornings. My sister and I decided to wake up early to beat the crowd, ordered warm cinnamon buns with two oat milk lattes, and sat outside on the wooden bench while watching the morning dog walkers stroll past in the gentle autumn sunshine until the church bells rang.",
+    set: "tuning",
+    category: "everyday",
+    lengthTier: "long",
+    tags: ["long-subject", "compound-predicate"],
+  }),
+
+  // Learner-Written Drafts (4 items: 1 short, 2 medium, 1 long)
+  createPracticeParagraph({
+    id: "tune-learner-01",
+    title: "Daily speaking practice reflection",
+    text: "I think, well, I think we should practice speaking English every day, even for ten minutes.",
+    set: "tuning",
+    category: "learner",
+    lengthTier: "short",
+    tags: ["hesitation"],
+  }),
+  createPracticeParagraph({
+    id: "tune-learner-02",
+    title: "First presentation anxiety",
+    text: "When I started my first job presentation in English, I felt very nervous, you know, but I took a slow breath and continued speaking clearly until everyone in the meeting room smiled and nodded encouragingly at my slides.",
+    set: "tuning",
+    category: "learner",
+    lengthTier: "medium",
+    tags: ["hesitation", "compound-predicate"],
+  }),
+  createPracticeParagraph({
+    id: "tune-learner-03",
+    title: "Hometown New Year traditions",
+    text: "In my home country, we usually celebrate New Year on January 1st with big family dinners, colorful fireworks, traditional sweet rice cakes, and lively music that plays all night long in the crowded town square.",
+    set: "tuning",
+    category: "learner",
+    lengthTier: "medium",
+    tags: ["numbers-dates", "list"],
+  }),
+  createPracticeParagraph({
+    id: "tune-learner-04",
+    title: "Overcoming preposition confusion",
+    text: "The most difficult grammar rule that confuses many international students in my class is using prepositions correctly. Yesterday our teacher smiled warmly and told us, 'Don't worry too much about tiny mistakes, because communication matters most.' So I decided, well, I decided not to be afraid of speaking anymore, and I tried chatting with a native speaker at the library cafe about our favorite weekend hobbies.",
+    set: "tuning",
+    category: "learner",
+    lengthTier: "long",
+    tags: ["long-subject", "dialogue", "hesitation"],
+  }),
+]);
