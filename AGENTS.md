@@ -33,7 +33,19 @@ Single-context repository layout (`GLOSSARY.md` and `docs/adr/` at root). See `d
 
 ### 4. Prioritize Native Platform & Cloud SDK Capabilities
 - Leverage native built-in platform or cloud SDK capabilities (e.g. Azure AI Speech native VAD/endpointing) before proposing bespoke client-side algorithms.
-- Avoid over-engineering minor UI features unless standard and explicitly requested.
+- Avoid over-engineering — UI features, fallback paths, or evaluation methods — unless standard and explicitly requested. Prefer surfacing a clear error over a bespoke fallback.
+- When a choice needs judgement (e.g. picking a model), prefer producing a clear comparison report for the human to decide over building automated scoring.
+
+### 5. Plain Domain Language
+- Name domain concepts (glossary terms, UI labels, ticket titles, schema fields) in plain everyday English a learner would understand.
+- Avoid academic or linguistics jargon (e.g. "thought group", "nuclear stress") even when research sources use it; if a plain word collides with an existing term, flag the collision and propose an alternative rather than falling back to jargon.
+
+## Skill Adjustments
+
+Project-specific additions to community skills. Apply them on top of the skill's own instructions.
+
+### grilling
+- Open each question with the problem it solves, in plain words, before any options or jargon. If the question exists because of a technical constraint, say so in one sentence ("to pick a model we must judge output quality; who judges?"). Use a concrete example where the trade-off is abstract.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
