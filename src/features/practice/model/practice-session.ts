@@ -1,4 +1,4 @@
-export const MAX_PRACTICE_CHARACTERS = 500;
+export const MAX_PRACTICE_CHARACTERS = 1200;
 
 export interface PracticeSessionState {
   text: string;

@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { PracticeWorkspace } from "./practice-workspace";
 
 describe("PracticeWorkspace Component", () => {
-  it("renders textarea with placeholder and initial 0 / 500 character counter", () => {
+  it("renders textarea with placeholder and initial 0 / 1200 character counter", () => {
     render(<PracticeWorkspace />);
 
     const textarea = screen.getByRole("textbox", {
@@ -16,7 +16,7 @@ describe("PracticeWorkspace Component", () => {
     );
 
     const counter = screen.getByTestId("character-counter");
-    expect(counter).toHaveTextContent("0 / 500");
+    expect(counter).toHaveTextContent("0 / 1200");
   });
 
   it("updates character counter as user types", () => {
@@ -30,23 +30,23 @@ describe("PracticeWorkspace Component", () => {
     });
 
     const counter = screen.getByTestId("character-counter");
-    expect(counter).toHaveTextContent("45 / 500");
+    expect(counter).toHaveTextContent("45 / 1200");
   });
 
-  it("enforces 500 character maximum limit", () => {
+  it("enforces 1200 character maximum limit", () => {
     render(<PracticeWorkspace />);
 
     const textarea = screen.getByRole("textbox", {
       name: /practice english text/i,
     });
-    expect(textarea).toHaveAttribute("maxLength", "500");
+    expect(textarea).toHaveAttribute("maxLength", "1200");
 
-    const over500 = "x".repeat(550);
-    fireEvent.change(textarea, { target: { value: over500 } });
+    const overLimit = "x".repeat(1250);
+    fireEvent.change(textarea, { target: { value: overLimit } });
 
     const counter = screen.getByTestId("character-counter");
-    expect(counter).toHaveTextContent("500 / 500");
-    expect((textarea as HTMLTextAreaElement).value.length).toBe(500);
+    expect(counter).toHaveTextContent("1200 / 1200");
+    expect((textarea as HTMLTextAreaElement).value.length).toBe(1200);
   });
 
   it("allows clearing the text via Clear button", () => {
@@ -60,7 +60,7 @@ describe("PracticeWorkspace Component", () => {
     const clearButton = screen.getByRole("button", { name: /clear text/i });
     fireEvent.click(clearButton);
 
-    expect(screen.getByTestId("character-counter")).toHaveTextContent("0 / 500");
+    expect(screen.getByTestId("character-counter")).toHaveTextContent("0 / 1200");
     expect((textarea as HTMLTextAreaElement).value).toBe("");
   });
 

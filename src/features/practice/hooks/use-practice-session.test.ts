@@ -8,7 +8,7 @@ describe("usePracticeSession hook", () => {
 
     expect(result.current.text).toBe("");
     expect(result.current.characterCount).toBe(0);
-    expect(result.current.maxCharacters).toBe(500);
+    expect(result.current.maxCharacters).toBe(1200);
     expect(result.current.isValid).toBe(false);
   });
 
@@ -24,16 +24,16 @@ describe("usePracticeSession hook", () => {
     expect(result.current.isValid).toBe(true);
   });
 
-  it("clamps input when exceeding 500 characters", () => {
+  it("clamps input when exceeding 1200 characters", () => {
     const { result } = renderHook(() => usePracticeSession());
-    const overLimit = "b".repeat(520);
+    const overLimit = "b".repeat(1250);
 
     act(() => {
       result.current.setText(overLimit);
     });
 
-    expect(result.current.text.length).toBe(500);
-    expect(result.current.characterCount).toBe(500);
+    expect(result.current.text.length).toBe(1200);
+    expect(result.current.characterCount).toBe(1200);
   });
 
   it("clears input on clear()", () => {

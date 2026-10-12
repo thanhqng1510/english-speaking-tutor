@@ -54,7 +54,7 @@ export function PracticeWorkspace({
           </CardTitle>
         </div>
         <CardDescription className="text-sm sm:text-base leading-relaxed text-muted-foreground">
-          Paste or type an English sentence or paragraph (up to 500 characters) to practice pronunciation, cadence, and stress.
+          Paste or type an English sentence or paragraph (up to 1,200 characters) to practice pronunciation, cadence, and stress.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 pt-2">
