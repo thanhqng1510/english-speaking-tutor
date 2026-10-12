@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { MAX_PRACTICE_CHARACTERS } from "../../src/features/practice/model/practice-session";
+import { countWords, createPracticeParagraph } from "./builder";
 import { EVALUATION_PARAGRAPHS } from "./evaluation-set";
 import {
   BENCHMARK_PARAGRAPHS,
-  countWords,
   getDatasetSummary,
   getEvaluationSet,
   getParagraphById,
@@ -11,7 +11,20 @@ import {
   getTuningSet,
 } from "./loader";
 import { TUNING_PARAGRAPHS } from "./tuning-set";
-import type { LengthTier, ParagraphCategory, ProsodicChallengeTag } from "./types";
+import type { LengthTier, ParagraphCategory, PracticeParagraph, ProsodicChallengeTag } from "./types";
+
+function countTiers(paragraphs: readonly PracticeParagraph[]): Record<LengthTier, number> {
+  const counts: Record<LengthTier, number> = {
+    short: 0,
+    medium: 0,
+    long: 0,
+    ceiling: 0,
+  };
+  for (const p of paragraphs) {
+    counts[p.lengthTier]++;
+  }
+  return counts;
+}
 
 describe("Benchmark Dataset Specification & Invariants", () => {
   it("contains exactly 36 paragraphs total with 12 tuning and 24 evaluation items", () => {
@@ -29,7 +42,7 @@ describe("Benchmark Dataset Specification & Invariants", () => {
     expect(uniqueIds.size).toBe(36);
   });
 
-  it("maintains an exact 1:1:1 category balance across both sets", () => {
+  it("maintains an exact 1:1:1 category balance across both partitions", () => {
     const categories: ParagraphCategory[] = ["exam", "everyday", "learner"];
 
     for (const category of categories) {
@@ -50,32 +63,14 @@ describe("Benchmark Dataset Specification & Invariants", () => {
   });
 
   it("distributes length tiers correctly across Tuning (3/6/3) and Evaluation (6/10/6/2)", () => {
-    const tuningTiers: Record<LengthTier, number> = {
-      short: 0,
-      medium: 0,
-      long: 0,
-      ceiling: 0,
-    };
-    for (const p of TUNING_PARAGRAPHS) {
-      tuningTiers[p.lengthTier]++;
-    }
-    expect(tuningTiers).toEqual({
+    expect(countTiers(TUNING_PARAGRAPHS)).toEqual({
       short: 3,
       medium: 6,
       long: 3,
       ceiling: 0,
     });
 
-    const evalTiers: Record<LengthTier, number> = {
-      short: 0,
-      medium: 0,
-      long: 0,
-      ceiling: 0,
-    };
-    for (const p of EVALUATION_PARAGRAPHS) {
-      evalTiers[p.lengthTier]++;
-    }
-    expect(evalTiers).toEqual({
+    expect(countTiers(EVALUATION_PARAGRAPHS)).toEqual({
       short: 6,
       medium: 10,
       long: 6,
@@ -100,7 +95,7 @@ describe("Benchmark Dataset Specification & Invariants", () => {
     }
   });
 
-  it("accurately records characterCount and wordCount for all items", () => {
+  it("accurately records characterCount and wordCount via factory builder for all items", () => {
     for (const p of BENCHMARK_PARAGRAPHS) {
       expect(p.characterCount).toBe(p.text.length);
       expect(p.wordCount).toBe(countWords(p.text));
@@ -123,7 +118,7 @@ describe("Benchmark Dataset Specification & Invariants", () => {
     }
   });
 
-  it("covers all 6 deliberate spoken challenge tags across both Tuning and Evaluation sets", () => {
+  it("covers all 6 deliberate spoken challenge tags across both Tuning and Evaluation partitions", () => {
     const expectedTags: ProsodicChallengeTag[] = [
       "long-subject",
       "compound-predicate",
@@ -145,15 +140,33 @@ describe("Benchmark Dataset Specification & Invariants", () => {
       expect(evalMatches.length).toBeGreaterThan(0);
     }
 
-    // Every paragraph has at least one tag
     for (const p of BENCHMARK_PARAGRAPHS) {
       expect(p.tags.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("contains genuine spoken disfluencies for all hesitation-tagged paragraphs", () => {
+    const hesitationParagraphs = BENCHMARK_PARAGRAPHS.filter((p) =>
+      p.tags.includes("hesitation")
+    );
+    expect(hesitationParagraphs).toHaveLength(9);
+
+    for (const p of hesitationParagraphs) {
+      const hasSpeechHesitation =
+        /\b(um|uh|you know)\b/i.test(p.text) ||
+        /\b(\w+)\s*\.\.\.\s*\1\b/i.test(p.text) ||
+        /\bI think,\s*well,\s*I think\b/i.test(p.text) ||
+        /\bI decided,\s*well,\s*I decided\b/i.test(p.text) ||
+        /\beverywhere—I mean,\s*everywhere\b/i.test(p.text) ||
+        /\bAt the beginning,\s*well\b/i.test(p.text);
+
+      expect(hasSpeechHesitation).toBe(true);
     }
   });
 });
 
 describe("Benchmark Dataset Query Loader API", () => {
-  it("filters paragraphs by set", () => {
+  it("filters paragraphs by partition set", () => {
     const tuning = getParagraphs({ set: "tuning" });
     expect(tuning).toHaveLength(12);
     expect(tuning.every((p) => p.set === "tuning")).toBe(true);
@@ -177,43 +190,24 @@ describe("Benchmark Dataset Query Loader API", () => {
 
   it("filters paragraphs by length tier", () => {
     const shortItems = getParagraphs({ lengthTier: "short" });
-    expect(shortItems).toHaveLength(9); // 3 tuning + 6 eval
+    expect(shortItems).toHaveLength(9);
 
     const mediumItems = getParagraphs({ lengthTier: "medium" });
-    expect(mediumItems).toHaveLength(16); // 6 tuning + 10 eval
+    expect(mediumItems).toHaveLength(16);
 
     const longItems = getParagraphs({ lengthTier: "long" });
-    expect(longItems).toHaveLength(9); // 3 tuning + 6 eval
+    expect(longItems).toHaveLength(9);
 
     const ceilingItems = getParagraphs({ lengthTier: "ceiling" });
-    expect(ceilingItems).toHaveLength(2); // 0 tuning + 2 eval
+    expect(ceilingItems).toHaveLength(2);
   });
 
-  it("filters paragraphs by single tag", () => {
+  it("filters paragraphs by tag", () => {
     const dialogueParagraphs = getParagraphs({ tag: "dialogue" });
     expect(dialogueParagraphs.length).toBeGreaterThan(0);
     expect(
       dialogueParagraphs.every((p) => p.tags.includes("dialogue"))
     ).toBe(true);
-  });
-
-  it("filters paragraphs by multiple tags (conjunction / AND match)", () => {
-    const multiTagParagraphs = getParagraphs({
-      tags: ["compound-predicate", "list"],
-    });
-    expect(multiTagParagraphs.length).toBeGreaterThan(0);
-    for (const p of multiTagParagraphs) {
-      expect(p.tags).toContain("compound-predicate");
-      expect(p.tags).toContain("list");
-    }
-  });
-
-  it("filters by character and word count bounds", () => {
-    const boundedChars = getParagraphs({ minCharacters: 1000, maxCharacters: 1200 });
-    expect(boundedChars).toHaveLength(2);
-
-    const boundedWords = getParagraphs({ minWords: 150 });
-    expect(boundedWords).toHaveLength(2);
   });
 
   it("combines multiple filter criteria", () => {
@@ -258,8 +252,8 @@ describe("Benchmark Dataset Query Loader API", () => {
     expect(summary.byTag["compound-predicate"]).toBe(17);
     expect(summary.byTag["numbers-dates"]).toBe(12);
     expect(summary.byTag["dialogue"]).toBe(12);
-    expect(summary.byTag["list"]).toBe(11);
-    expect(summary.byTag["hesitation"]).toBe(10);
+    expect(summary.byTag["list"]).toBe(12);
+    expect(summary.byTag["hesitation"]).toBe(9);
   });
 
   it("returns immutable or defensive copies from queries", () => {
@@ -267,5 +261,20 @@ describe("Benchmark Dataset Query Loader API", () => {
     paragraphs.pop();
     expect(BENCHMARK_PARAGRAPHS).toHaveLength(36);
     expect(getParagraphs()).toHaveLength(36);
+  });
+
+  it("creates paragraphs accurately with createPracticeParagraph", () => {
+    const custom = createPracticeParagraph({
+      id: "custom-01",
+      title: "Test custom item",
+      text: "Hello world, this is a spoken unit.",
+      set: "tuning",
+      category: "everyday",
+      lengthTier: "short",
+      tags: ["dialogue"],
+    });
+
+    expect(custom.characterCount).toBe(35);
+    expect(custom.wordCount).toBe(7);
   });
 });

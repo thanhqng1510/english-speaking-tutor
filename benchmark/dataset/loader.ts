@@ -1,13 +1,17 @@
+import { countWords, createPracticeParagraph } from "./builder";
 import { EVALUATION_PARAGRAPHS } from "./evaluation-set";
 import { TUNING_PARAGRAPHS } from "./tuning-set";
 import type {
-  DatasetSet,
+  DatasetPartition,
   DatasetSummary,
   LengthTier,
   ParagraphCategory,
   ParagraphFilter,
   PracticeParagraph,
+  ProsodicChallengeTag,
 } from "./types";
+
+export { countWords, createPracticeParagraph };
 
 /**
  * All 36 benchmark practice paragraphs combining the Tuning (12) and Evaluation (24) sets.
@@ -18,17 +22,8 @@ export const BENCHMARK_PARAGRAPHS: readonly PracticeParagraph[] = Object.freeze(
 ]);
 
 /**
- * Counts words by splitting on consecutive whitespace after trimming.
- */
-export function countWords(text: string): number {
-  const trimmed = text.trim();
-  if (trimmed.length === 0) return 0;
-  return trimmed.split(/\s+/).length;
-}
-
-/**
  * Retrieves practice paragraphs based on optional query filter criteria.
- * Returns a defensive copy to prevent mutations.
+ * Returns a defensive copy to prevent caller mutations.
  */
 export function getParagraphs(
   filter: ParagraphFilter = {}
@@ -56,41 +51,6 @@ export function getParagraphs(
       return false;
     }
 
-    if (filter.tags !== undefined && filter.tags.length > 0) {
-      const hasAllTags = filter.tags.every((t) => paragraph.tags.includes(t));
-      if (!hasAllTags) {
-        return false;
-      }
-    }
-
-    if (
-      filter.minCharacters !== undefined &&
-      paragraph.characterCount < filter.minCharacters
-    ) {
-      return false;
-    }
-
-    if (
-      filter.maxCharacters !== undefined &&
-      paragraph.characterCount > filter.maxCharacters
-    ) {
-      return false;
-    }
-
-    if (
-      filter.minWords !== undefined &&
-      paragraph.wordCount < filter.minWords
-    ) {
-      return false;
-    }
-
-    if (
-      filter.maxWords !== undefined &&
-      paragraph.wordCount > filter.maxWords
-    ) {
-      return false;
-    }
-
     return true;
   });
 }
@@ -105,24 +65,24 @@ export function getParagraphById(id: string): PracticeParagraph | undefined {
 /**
  * Retrieves the 12 paragraphs in the Tuning Set.
  */
-export function getTuningSet(): PracticeParagraph[] {
-  return getParagraphs({ set: "tuning" });
+export function getTuningSet(): readonly PracticeParagraph[] {
+  return TUNING_PARAGRAPHS;
 }
 
 /**
  * Retrieves the 24 paragraphs in the Evaluation Set.
  */
-export function getEvaluationSet(): PracticeParagraph[] {
-  return getParagraphs({ set: "evaluation" });
+export function getEvaluationSet(): readonly PracticeParagraph[] {
+  return EVALUATION_PARAGRAPHS;
 }
 
 /**
- * Computes statistical summaries across sets, categories, length tiers, and challenge tags.
+ * Computes statistical summaries across partitions, categories, length tiers, and challenge tags.
  */
 export function getDatasetSummary(
   paragraphs: readonly PracticeParagraph[] = BENCHMARK_PARAGRAPHS
 ): DatasetSummary {
-  const bySet: Record<DatasetSet, number> = {
+  const bySet: Record<DatasetPartition, number> = {
     tuning: 0,
     evaluation: 0,
   };
@@ -140,7 +100,14 @@ export function getDatasetSummary(
     ceiling: 0,
   };
 
-  const byTag: Record<string, number> = {};
+  const byTag: Record<ProsodicChallengeTag, number> = {
+    "long-subject": 0,
+    "compound-predicate": 0,
+    "numbers-dates": 0,
+    dialogue: 0,
+    list: 0,
+    hesitation: 0,
+  };
 
   for (const p of paragraphs) {
     bySet[p.set] = (bySet[p.set] || 0) + 1;
