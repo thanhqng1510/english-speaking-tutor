@@ -1,7 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
-import { getParagraphs, type DatasetPartition, type PracticeParagraph } from "../dataset";
-import { getCandidateConfig } from "./candidates";
+import {
+  DATASET_PARTITIONS,
+  getParagraphs,
+  type DatasetPartition,
+  type PracticeParagraph,
+} from "../dataset";
+import { DEFAULT_CANDIDATE_IDS, getCandidateConfig } from "./candidates";
 import { invokeCandidateModel, resolveEndpoint } from "./client";
 import { aggregateCandidateMetrics, calculateLearnerCostProjections } from "./metrics";
 import { saveBenchmarkArtifacts } from "./reporter";
@@ -12,6 +17,10 @@ import type {
   CandidateModelId,
   ModelInvocationResult,
 } from "./types";
+
+export const DEFAULT_DATASET_PARTITION: DatasetPartition = "evaluation";
+export const DEFAULT_PACING_DELAY_MS = 200;
+export const DEFAULT_REPORTS_DIR = "benchmark/reports/runs";
 
 export interface BenchmarkRunnerConfig {
   readonly partition: DatasetPartition | "all";
@@ -24,19 +33,12 @@ export interface BenchmarkRunnerConfig {
 }
 
 export function parseCliArguments(args: string[]): BenchmarkRunnerConfig {
-  let partition: DatasetPartition | "all" = "evaluation";
-  let candidateIds: CandidateModelId[] = [
-    "phi-4-mini-instruct",
-    "gpt-6-luna",
-    "claude-haiku-5-5",
-    "deepseek-v4-1-flash",
-    "gpt-5-4-nano",
-    "gpt-6-sol",
-  ];
-  let delayMs = 200;
+  let partition: DatasetPartition | "all" = DEFAULT_DATASET_PARTITION;
+  let candidateIds: CandidateModelId[] = [...DEFAULT_CANDIDATE_IDS];
+  let delayMs = DEFAULT_PACING_DELAY_MS;
   let dryRun = false;
   let limit: number | undefined;
-  let outputDir = path.resolve(process.cwd(), "benchmark/reports/runs");
+  let outputDir = path.resolve(process.cwd(), DEFAULT_REPORTS_DIR);
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -44,8 +46,8 @@ export function parseCliArguments(args: string[]): BenchmarkRunnerConfig {
       dryRun = true;
     } else if (arg === "--set" && i + 1 < args.length) {
       const val = args[++i];
-      if (val === "tuning" || val === "evaluation" || val === "all") {
-        partition = val;
+      if (val === "all" || (DATASET_PARTITIONS as readonly string[]).includes(val)) {
+        partition = val as DatasetPartition | "all";
       }
     } else if (arg === "--models" && i + 1 < args.length) {
       candidateIds = args[++i].split(",").map((s) => s.trim()) as CandidateModelId[];

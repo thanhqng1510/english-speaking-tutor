@@ -1,3 +1,5 @@
+import { PART_ROLES } from "./types";
+
 export const CHUNKING_JSON_SCHEMA = {
   name: "chunking_result",
   strict: true,
@@ -22,7 +24,7 @@ export const CHUNKING_JSON_SCHEMA = {
                   },
                   role: {
                     type: "string",
-                    enum: ["normal", "focus_word"],
+                    enum: PART_ROLES,
                     description: "Role of the part. Exactly one 'focus_word' per Chunk.",
                   },
                 },

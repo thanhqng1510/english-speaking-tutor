@@ -1,14 +1,15 @@
-import type {
-  CandidateAggregateMetrics,
-  CandidateCostProjection,
-  CandidateModelConfig,
-  LatencyStats,
-  LearnerCostTierProjection,
-  LengthTier,
-  ModelInvocationResult,
-  RateCard,
-  TokenStats,
-  TokenUsage,
+import {
+  LENGTH_TIERS,
+  type CandidateAggregateMetrics,
+  type CandidateCostProjection,
+  type CandidateModelConfig,
+  type LatencyStats,
+  type LearnerCostTierProjection,
+  type LengthTier,
+  type ModelInvocationResult,
+  type RateCard,
+  type TokenStats,
+  type TokenUsage,
 } from "./types";
 
 /**
@@ -159,8 +160,7 @@ export function calculateLearnerCostProjections(
   config: CandidateModelConfig,
   results: readonly ModelInvocationResult[]
 ): CandidateCostProjection {
-  const tiers: LearnerCostTierProjection[] = (["short", "medium", "long", "ceiling"] as LengthTier[]).map(
-    (tier) => {
+  const tiers: LearnerCostTierProjection[] = LENGTH_TIERS.map((tier) => {
       const tierResults = results.filter(
         (r): r is ModelInvocationResult & { tokens: TokenUsage } =>
           r.lengthTier === tier && r.tokens !== null

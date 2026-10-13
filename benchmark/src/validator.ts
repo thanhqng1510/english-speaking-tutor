@@ -1,10 +1,16 @@
-import type {
-  Chunk,
-  ChunkLengthIssue,
-  ChunkPart,
-  ChunkingResult,
-  ValidationResult,
+import {
+  PART_ROLES,
+  type Chunk,
+  type ChunkLengthIssue,
+  type ChunkPart,
+  type ChunkingResult,
+  type PartRole,
+  type ValidationResult,
 } from "./types";
+
+export const CHUNK_WORD_TARGET_MIN = 3;
+export const CHUNK_WORD_TARGET_MAX = 10;
+export const CHUNK_WORD_HARD_MAX = 15;
 
 /**
  * Normalizes text into an ordered array of lowercase word tokens for word-for-word comparison.
@@ -84,16 +90,16 @@ export function validateSchema(data: unknown): {
         continue;
       }
 
-      if (partObj.role !== "normal" && partObj.role !== "focus_word") {
+      if (!PART_ROLES.includes(partObj.role as PartRole)) {
         errors.push(
-          `Chunk ${cIdx}, part ${pIdx} 'role' must be either 'normal' or 'focus_word', received: '${String(partObj.role)}'`
+          `Chunk ${cIdx}, part ${pIdx} 'role' must be one of [${PART_ROLES.join(", ")}], received: '${String(partObj.role)}'`
         );
         continue;
       }
 
       validatedParts.push({
         text: partObj.text,
-        role: partObj.role,
+        role: partObj.role as PartRole,
       });
     }
 
@@ -201,14 +207,14 @@ export function inspectChunkLengths(chunks: readonly Chunk[]): ChunkLengthIssue[
     const wordCount = countChunkWords(chunk);
     const chunkText = chunk.parts.map((p) => p.text).join("").trim();
 
-    if (wordCount < 3) {
+    if (wordCount < CHUNK_WORD_TARGET_MIN) {
       issues.push({
         chunkIndex: index,
         text: chunkText,
         wordCount,
         issue: "under_target",
       });
-    } else if (wordCount > 10) {
+    } else if (wordCount > CHUNK_WORD_TARGET_MAX) {
       issues.push({
         chunkIndex: index,
         text: chunkText,
@@ -283,11 +289,11 @@ export function validateChunkingOutput(
   const chunkLengthIssues = inspectChunkLengths(chunks);
   const hasEmptyOrRunawayChunks = chunks.some((c) => {
     const wc = countChunkWords(c);
-    return wc === 0 || wc > 15;
+    return wc === 0 || wc > CHUNK_WORD_HARD_MAX;
   });
   const chunkLengthBoundsValid = !hasEmptyOrRunawayChunks;
   if (!chunkLengthBoundsValid) {
-    allErrors.push("Output contains empty chunks (0 words) or runaway chunks exceeding 15 words");
+    allErrors.push(`Output contains empty chunks (0 words) or runaway chunks exceeding ${CHUNK_WORD_HARD_MAX} words`);
   }
 
   // Active validation gate covering all 4 automated checks

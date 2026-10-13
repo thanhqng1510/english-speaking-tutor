@@ -1,12 +1,13 @@
 import * as fs from "fs";
 import * as path from "path";
-import type {
-  BenchmarkRunReportData,
-  CandidateAggregateMetrics,
-  CandidateCostProjection,
-  CandidateModelId,
-  Chunk,
-  ModelInvocationResult,
+import {
+  LENGTH_TIERS,
+  type BenchmarkRunReportData,
+  type CandidateAggregateMetrics,
+  type CandidateCostProjection,
+  type CandidateModelId,
+  type Chunk,
+  type ModelInvocationResult,
 } from "./types";
 
 /**
@@ -76,13 +77,11 @@ export function renderLearnerCostSimulatorSection(
   for (const c of candidates) {
     const proj = costProjections[c.candidateId];
     if (proj) {
-      const shortCost = proj.tiers.find((t) => t.tier === "short")?.costPerSessionUsd ?? 0;
-      const medCost = proj.tiers.find((t) => t.tier === "medium")?.costPerSessionUsd ?? 0;
-      const longCost = proj.tiers.find((t) => t.tier === "long")?.costPerSessionUsd ?? 0;
-      const ceilCost = proj.tiers.find((t) => t.tier === "ceiling")?.costPerSessionUsd ?? 0;
-      lines.push(
-        `| **${c.candidateName}** | $${shortCost.toFixed(6)} | $${medCost.toFixed(6)} | $${longCost.toFixed(6)} | $${ceilCost.toFixed(6)} |`
-      );
+      const tierCells = LENGTH_TIERS.map((tier) => {
+        const cost = proj.tiers.find((t) => t.tier === tier)?.costPerSessionUsd ?? 0;
+        return `$${cost.toFixed(6)}`;
+      });
+      lines.push(`| **${c.candidateName}** | ${tierCells.join(" | ")} |`);
     }
   }
   lines.push(``);

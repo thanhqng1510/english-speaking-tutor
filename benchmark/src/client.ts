@@ -14,6 +14,11 @@ import type {
 } from "./types";
 import { validateChunkingOutput } from "./validator";
 
+export const AZURE_OPENAI_API_VERSION = "2024-10-21";
+export const AZURE_FOUNDRY_API_VERSION = "2024-05-01-preview";
+export const AZURE_COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default";
+export const HEADER_OPENAI_PROCESSING_MS = "openai-processing-ms";
+
 export interface ModelClientOptions {
   readonly endpoint?: string;
   readonly timeoutMs?: number;
@@ -56,9 +61,9 @@ export function resolveEndpoint(candidateId: CandidateModelId): string {
   // Append model-appropriate deployment path
   const baseUrl = rawUrl.replace(/\/+$/, "");
   if (config.deploymentType === "Azure OpenAI") {
-    return `${baseUrl}/openai/deployments/${candidateId}/chat/completions?api-version=2024-10-21`;
+    return `${baseUrl}/openai/deployments/${candidateId}/chat/completions?api-version=${AZURE_OPENAI_API_VERSION}`;
   }
-  return `${baseUrl}/models/chat/completions?api-version=2024-05-01-preview`;
+  return `${baseUrl}/models/chat/completions?api-version=${AZURE_FOUNDRY_API_VERSION}`;
 }
 
 interface AzureChatCompletionResponse {
@@ -115,7 +120,7 @@ export function extractTokenUsage(usage: unknown): TokenUsage {
  * Parses optional server-side processing latency header from Azure response.
  */
 export function parseServerProcessingMs(response: Response): number | null {
-  const header = response.headers.get("openai-processing-ms");
+  const header = response.headers.get(HEADER_OPENAI_PROCESSING_MS);
   return header ? parseInt(header, 10) : null;
 }
 
@@ -198,7 +203,7 @@ export async function invokeCandidateModel(
 
   try {
     const credential = options.credential ?? getCredential();
-    const tokenResponse = await credential.getToken("https://cognitiveservices.azure.com/.default");
+    const tokenResponse = await credential.getToken(AZURE_COGNITIVE_SERVICES_SCOPE);
 
     const payload = buildChatCompletionPayload(candidateId, paragraph.text);
     const { data, serverProcessingMs } = await executeHttpCall(endpoint, tokenResponse.token, payload, {

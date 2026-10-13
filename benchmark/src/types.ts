@@ -1,7 +1,9 @@
-import type { LengthTier } from "../dataset";
+import { LENGTH_TIERS, type LengthTier } from "../dataset";
+export { LENGTH_TIERS };
 export type { LengthTier };
 
-export type PartRole = "normal" | "focus_word";
+export const PART_ROLES = ["normal", "focus_word"] as const;
+export type PartRole = (typeof PART_ROLES)[number];
 
 export interface ChunkPart {
   readonly text: string;
@@ -16,17 +18,22 @@ export interface ChunkingResult {
   readonly chunks: readonly Chunk[];
 }
 
-export type CandidateModelId =
-  | "phi-4-mini-instruct"
-  | "gpt-6-luna"
-  | "claude-haiku-5-5"
-  | "deepseek-v4-1-flash"
-  | "gpt-5-4-nano"
-  | "gpt-6-sol";
+export const CANDIDATE_MODEL_IDS = [
+  "phi-4-mini-instruct",
+  "gpt-6-luna",
+  "claude-haiku-5-5",
+  "deepseek-v4-1-flash",
+  "gpt-5-4-nano",
+  "gpt-6-sol",
+] as const;
 
-export type ProviderName = "Microsoft" | "OpenAI" | "Anthropic" | "DeepSeek";
+export type CandidateModelId = (typeof CANDIDATE_MODEL_IDS)[number];
 
-export type DeploymentProvider = "Azure OpenAI" | "Foundry MaaS";
+export const PROVIDER_NAMES = ["Microsoft", "OpenAI", "Anthropic", "DeepSeek"] as const;
+export type ProviderName = (typeof PROVIDER_NAMES)[number];
+
+export const DEPLOYMENT_PROVIDERS = ["Azure OpenAI", "Foundry MaaS"] as const;
+export type DeploymentProvider = (typeof DEPLOYMENT_PROVIDERS)[number];
 
 export interface RateCard {
   /** Price in USD per 1 Million input tokens */
