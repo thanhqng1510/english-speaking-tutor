@@ -119,14 +119,27 @@ export function PrototypePracticeHost() {
   const handlePlayAudio = useCallback((chunkText: string) => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
+      setIsAudioPlaying(true);
       const utterance = new SpeechSynthesisUtterance(chunkText);
       utterance.rate = 0.9;
       utterance.pitch = 1.0;
       utterance.lang = "en-US";
 
+      // Estimated duration fallback to prevent visual indicator hanging
+      const estimatedDurationMs = Math.max(1200, chunkText.split(/\s+/).length * 600);
+      const safetyTimer = setTimeout(() => {
+        setIsAudioPlaying(false);
+      }, estimatedDurationMs + 600);
+
       utterance.onstart = () => setIsAudioPlaying(true);
-      utterance.onend = () => setIsAudioPlaying(false);
-      utterance.onerror = () => setIsAudioPlaying(false);
+      utterance.onend = () => {
+        clearTimeout(safetyTimer);
+        setIsAudioPlaying(false);
+      };
+      utterance.onerror = () => {
+        clearTimeout(safetyTimer);
+        setIsAudioPlaying(false);
+      };
 
       window.speechSynthesis.speak(utterance);
     } else {

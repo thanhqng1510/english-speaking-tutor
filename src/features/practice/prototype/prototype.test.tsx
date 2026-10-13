@@ -304,6 +304,45 @@ describe("FinalPrototype (Unified Synthesized Design)", () => {
     fireEvent.keyDown(window, { key: " " });
     expect(handlePlayAudio).toHaveBeenLastCalledWith(getChunkPlainText(sampleChunks[1]));
   });
+
+  it("renders voice playing visual cue on active chunk and bottom bar when audio is playing", () => {
+    const { rerender } = render(
+      <FinalPrototype
+        status="practicing"
+        chunks={sampleChunks}
+        activeChunkIndex={0}
+        onSelectChunk={vi.fn()}
+        onPrevChunk={vi.fn()}
+        onNextChunk={vi.fn()}
+        onCancelPreparing={vi.fn()}
+        onExitPractice={vi.fn()}
+        onPlayAudio={vi.fn()}
+        isAudioPlaying={false}
+      />
+    );
+
+    expect(screen.queryByTestId("audio-playing-indicator")).not.toBeInTheDocument();
+    expect(screen.getByText("Listen")).toBeInTheDocument();
+
+    rerender(
+      <FinalPrototype
+        status="practicing"
+        chunks={sampleChunks}
+        activeChunkIndex={0}
+        onSelectChunk={vi.fn()}
+        onPrevChunk={vi.fn()}
+        onNextChunk={vi.fn()}
+        onCancelPreparing={vi.fn()}
+        onExitPractice={vi.fn()}
+        onPlayAudio={vi.fn()}
+        isAudioPlaying={true}
+      />
+    );
+
+    expect(screen.getByTestId("audio-playing-indicator")).toBeInTheDocument();
+    expect(screen.getByText("Speaking…")).toBeInTheDocument();
+    expect(screen.getByText("Playing…")).toBeInTheDocument();
+  });
 });
 
 describe("PrototypePracticeHost Preset Selection", () => {

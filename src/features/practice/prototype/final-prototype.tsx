@@ -223,24 +223,44 @@ export function FinalPrototype({
             >
               {chunk.parts.map((part, partIdx) => {
                 const isFocus = part.role === "focus_word";
+                if (!isFocus) {
+                  return (
+                    <span key={partIdx} className="transition-colors duration-300 ease-out">
+                      {part.text}
+                    </span>
+                  );
+                }
+
                 return (
                   <span
                     key={partIdx}
-                    data-testid={isFocus && isActive ? "focus-word-accent" : undefined}
-                    className={
-                      isFocus
-                        ? `inline rounded-md px-1.5 py-0.5 transition-colors duration-300 ease-out ${
-                            isActive
-                              ? "bg-primary/15 dark:bg-primary/25 text-foreground shadow-2xs"
-                              : "bg-transparent text-inherit"
-                          }`
-                        : "transition-colors duration-300 ease-out"
-                    }
+                    data-testid={isActive ? "focus-word-accent" : undefined}
+                    className={`inline transition-all duration-300 ease-out ${
+                      isActive
+                        ? "italic font-bold text-primary text-[1.08em]"
+                        : "italic font-semibold text-foreground/75"
+                    }`}
                   >
                     {part.text}
                   </span>
                 );
               })}
+
+              {/* Visual cue: Active voice playback indicator directly on the chunk */}
+              {isActive && isAudioPlaying && (
+                <span
+                  data-testid="audio-playing-indicator"
+                  className="inline-flex items-center gap-1.5 ml-2.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-sans font-medium align-middle animate-in fade-in duration-200"
+                >
+                  <Volume2 className="h-3.5 w-3.5 animate-pulse" />
+                  <span className="font-semibold tracking-wide">Speaking…</span>
+                  <span className="inline-flex items-center gap-0.5">
+                    <span className="w-0.5 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                    <span className="w-0.5 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                    <span className="w-0.5 h-1.5 bg-primary rounded-full animate-bounce" />
+                  </span>
+                </span>
+              )}
             </div>
           );
         })}
@@ -295,14 +315,18 @@ export function FinalPrototype({
             playCurrentChunk();
           }}
           aria-label="Listen to active chunk"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-colors font-medium ${
+            isAudioPlaying
+              ? "bg-primary text-primary-foreground shadow-2xs"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          }`}
         >
           {isAudioPlaying ? (
-            <Volume2 className="h-3.5 w-3.5 text-primary animate-pulse" />
+            <Volume2 className="h-3.5 w-3.5 animate-pulse" />
           ) : (
             <Volume2 className="h-3.5 w-3.5" />
           )}
-          <span>Listen</span>
+          <span>{isAudioPlaying ? "Playing…" : "Listen"}</span>
         </button>
 
         {/* Hear Focus Word Only Button (Per Grilling Q2) */}
