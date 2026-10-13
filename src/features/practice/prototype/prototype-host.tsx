@@ -252,7 +252,8 @@ export function PrototypePracticeHost() {
       {/* Main Workspace / Practice View */}
       {status === "draft" && (
         <PracticeWorkspace
-          initialText={text}
+          value={text}
+          onChange={setText}
           onStartPractice={handleStartPractice}
         />
       )}

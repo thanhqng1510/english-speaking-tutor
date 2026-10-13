@@ -15,25 +15,46 @@ import { Sparkles, Trash2, ArrowRight } from "lucide-react";
 
 export interface PracticeWorkspaceProps {
   initialText?: string;
+  value?: string;
+  onChange?: (text: string) => void;
   onStartPractice?: (text: string) => void;
   className?: string;
 }
 
 export function PracticeWorkspace({
   initialText = "",
+  value,
+  onChange,
   onStartPractice,
   className = "",
 }: PracticeWorkspaceProps) {
   const textareaId = useId();
   const counterId = useId();
-  const { text, characterCount, maxCharacters, isValid, setText, clear } =
-    usePracticeSession(initialText);
+  const internal = usePracticeSession(initialText);
+
+  const isControlled = value !== undefined;
+  const text = isControlled ? value : internal.text;
+  const characterCount = text.length;
+  const maxCharacters = internal.maxCharacters;
+  const isValid = text.trim().length > 0 && text.length <= maxCharacters;
 
   const isNearLimit = characterCount >= maxCharacters * 0.9;
   const isAtLimit = characterCount >= maxCharacters;
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value);
+    if (isControlled) {
+      onChange?.(e.target.value);
+    } else {
+      internal.setText(e.target.value);
+    }
+  };
+
+  const handleClear = () => {
+    if (isControlled) {
+      onChange?.("");
+    } else {
+      internal.clear();
+    }
   };
 
   const handleStart = () => {
@@ -81,7 +102,7 @@ export function PracticeWorkspace({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={clear}
+              onClick={handleClear}
               disabled={characterCount === 0}
               aria-label="Clear text"
               className="text-muted-foreground hover:text-foreground h-9 px-3 gap-1.5 text-sm"

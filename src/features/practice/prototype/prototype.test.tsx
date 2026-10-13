@@ -183,3 +183,30 @@ describe("Variant C (Flow Ribbon)", () => {
     expect(handleExit).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("PrototypePracticeHost Preset Selection", () => {
+  it("updates textarea text and character counter when clicking different presets", async () => {
+    // Dynamically import to ensure client component loads in test
+    const { PrototypePracticeHost } = await import("./prototype-host");
+    render(<PrototypePracticeHost />);
+
+    const textarea = screen.getByRole("textbox", {
+      name: /practice english text/i,
+    }) as HTMLTextAreaElement;
+
+    // Initially short preset
+    expect(textarea.value).toBe(PRESET_PARAGRAPHS[0].text);
+
+    // Click medium preset
+    const mediumBtn = screen.getByRole("button", { name: /MEDIUM/i });
+    fireEvent.click(mediumBtn);
+
+    expect(textarea.value).toBe(PRESET_PARAGRAPHS[1].text);
+
+    // Click long preset
+    const longBtn = screen.getByRole("button", { name: /LONG/i });
+    fireEvent.click(longBtn);
+
+    expect(textarea.value).toBe(PRESET_PARAGRAPHS[2].text);
+  });
+});
