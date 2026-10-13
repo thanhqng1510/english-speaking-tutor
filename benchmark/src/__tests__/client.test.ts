@@ -19,13 +19,28 @@ describe("benchmark client", () => {
     }
   });
 
-  it("resolves endpoint when environment variable is provided", () => {
+  it("expands base host environment variable to standard Azure deployment chat completions path", () => {
     process.env.AZURE_OPENAI_ENDPOINT = "https://custom.openai.azure.com";
     try {
       const endpoint = resolveEndpoint("gpt-6-luna");
-      expect(endpoint).toBe("https://custom.openai.azure.com");
+      expect(endpoint).toBe(
+        "https://custom.openai.azure.com/openai/deployments/gpt-6-luna/chat/completions?api-version=2024-10-21"
+      );
     } finally {
       delete process.env.AZURE_OPENAI_ENDPOINT;
+    }
+  });
+
+  it("preserves full chat/completions endpoint URLs as-is", () => {
+    process.env.AZURE_CLAUDE_HAIKU_ENDPOINT =
+      "https://custom-haiku.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview";
+    try {
+      const endpoint = resolveEndpoint("claude-haiku-5-5");
+      expect(endpoint).toBe(
+        "https://custom-haiku.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview"
+      );
+    } finally {
+      delete process.env.AZURE_CLAUDE_HAIKU_ENDPOINT;
     }
   });
 

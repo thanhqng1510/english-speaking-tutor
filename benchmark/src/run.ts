@@ -203,7 +203,22 @@ function printCompletionSummary(markdownPath: string, jsonPath: string): void {
   console.log(`=======================================================\n`);
 }
 
+export function loadEnvironmentFiles(): void {
+  for (const envFile of [".env.local", ".env"]) {
+    try {
+      const fullPath = path.resolve(process.cwd(), envFile);
+      if (typeof (process as unknown as { loadEnvFile?: (path?: string) => void }).loadEnvFile === "function") {
+        (process as unknown as { loadEnvFile: (path?: string) => void }).loadEnvFile(fullPath);
+      }
+    } catch {
+      // Ignore if file does not exist
+    }
+  }
+}
+
 export async function runBenchmark(config: BenchmarkRunnerConfig): Promise<BenchmarkRunReportData> {
+  loadEnvironmentFiles();
+
   const startTime = new Date();
   const runId = formatTimestamp(startTime);
   const timestamp = startTime.toISOString();

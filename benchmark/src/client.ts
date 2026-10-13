@@ -34,22 +34,33 @@ function getCredential(): DefaultAzureCredential {
 
 /**
  * Resolves endpoint URL for a given candidate model.
- * Looks up custom environment variables first, then standard Azure endpoints.
+ * Supports:
+ * 1. Full endpoint URLs (containing /chat/completions) directly from specific model env vars.
+ * 2. Shared base endpoint URLs (e.g. https://<resource>.cognitiveservices.azure.com or .openai.azure.com),
+ *    automatically appending standard Azure deployment chat completions path.
  */
 export function resolveEndpoint(candidateId: CandidateModelId): string {
   const config = getCandidateConfig(candidateId);
-  const specificEnv = process.env[config.defaultEndpointEnvVar];
-  if (specificEnv) return specificEnv;
+  const rawUrl =
+    process.env[config.defaultEndpointEnvVar] ||
+    process.env.AZURE_AI_FOUNDRY_ENDPOINT ||
+    process.env.AZURE_AI_ENDPOINT ||
+    process.env.AZURE_OPENAI_ENDPOINT;
 
-  const foundryEndpoint = process.env.AZURE_AI_FOUNDRY_ENDPOINT;
-  if (foundryEndpoint) return foundryEndpoint;
+  if (!rawUrl) {
+    throw new Error(
+      `No Azure endpoint configured for model "${candidateId}". Please set ${config.defaultEndpointEnvVar}, AZURE_AI_ENDPOINT, or AZURE_OPENAI_ENDPOINT.`
+    );
+  }
 
-  const openAiEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
-  if (openAiEndpoint) return openAiEndpoint;
+  // If already a full chat completions URL, use as-is
+  if (rawUrl.includes("/chat/completions")) {
+    return rawUrl;
+  }
 
-  throw new Error(
-    `No Azure endpoint configured for model "${candidateId}". Please set ${config.defaultEndpointEnvVar}, AZURE_AI_FOUNDRY_ENDPOINT, or AZURE_OPENAI_ENDPOINT.`
-  );
+  // If a base resource host, append standard Azure deployment path
+  const baseUrl = rawUrl.replace(/\/+$/, "");
+  return `${baseUrl}/openai/deployments/${candidateId}/chat/completions?api-version=2024-10-21`;
 }
 
 interface AzureChatCompletionResponse {
