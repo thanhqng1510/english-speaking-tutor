@@ -1,0 +1,185 @@
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import {
+  createChunksFromText,
+  PRESET_PARAGRAPHS,
+  getChunkPlainText,
+  getChunkFocusWord,
+} from "./mock-data";
+import { VariantA } from "./variant-a";
+import { VariantB } from "./variant-b";
+import { VariantC } from "./variant-c";
+
+describe("Prototype Mock Data & Chunker", () => {
+  it("loads predefined presets with exactly one Focus Word per chunk and exact reassembly", () => {
+    for (const preset of PRESET_PARAGRAPHS) {
+      expect(preset.chunks.length).toBeGreaterThan(0);
+
+      // Verify each chunk has exactly one Focus Word
+      for (const chunk of preset.chunks) {
+        const focusWords = chunk.parts.filter((p) => p.role === "focus_word");
+        expect(focusWords).toHaveLength(1);
+      }
+
+      // Verify exact text reassembly
+      const reconstructed = preset.chunks
+        .flatMap((c) => c.parts)
+        .map((p) => p.text)
+        .join("");
+      expect(reconstructed).toBe(preset.text);
+    }
+  });
+
+  it("chunks custom arbitrary text into chunks with Focus Words and full reassembly", () => {
+    const customText = "Effective communication requires rhythm, clear cadence, and steady pacing.";
+    const chunks = createChunksFromText(customText);
+
+    expect(chunks.length).toBeGreaterThan(0);
+
+    for (const chunk of chunks) {
+      const focusWords = chunk.parts.filter((p) => p.role === "focus_word");
+      expect(focusWords).toHaveLength(1);
+      expect(getChunkPlainText(chunk).length).toBeGreaterThan(0);
+      expect(getChunkFocusWord(chunk).length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("Variant A (Immersive Teleprompter)", () => {
+  const sampleChunks = PRESET_PARAGRAPHS[0].chunks;
+
+  it("renders preparing view with Cancel button", () => {
+    const handleCancel = vi.fn();
+    render(
+      <VariantA
+        status="preparing"
+        chunks={[]}
+        activeChunkIndex={0}
+        onSelectChunk={vi.fn()}
+        onPrevChunk={vi.fn()}
+        onNextChunk={vi.fn()}
+        onCancelPreparing={handleCancel}
+        onExitPractice={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("variant-a-preparing")).toBeInTheDocument();
+    const cancelBtn = screen.getByRole("button", { name: /cancel preparation/i });
+    fireEvent.click(cancelBtn);
+    expect(handleCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders practicing view with active chunk, focus word accent, and click interaction", () => {
+    const handleSelect = vi.fn();
+    const handleNext = vi.fn();
+
+    render(
+      <VariantA
+        status="practicing"
+        chunks={sampleChunks}
+        activeChunkIndex={0}
+        onSelectChunk={handleSelect}
+        onPrevChunk={vi.fn()}
+        onNextChunk={handleNext}
+        onCancelPreparing={vi.fn()}
+        onExitPractice={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("variant-a-practice")).toBeInTheDocument();
+    expect(screen.getByTestId("focus-word-accent")).toBeInTheDocument();
+
+    // Click on chunk 2 line
+    const chunk2 = screen.getByRole("button", { name: /^Chunk 2:/i });
+    fireEvent.click(chunk2);
+    expect(handleSelect).toHaveBeenCalledWith(1);
+
+    // Click Next Chunk
+    const nextButtons = screen.getAllByRole("button", { name: /next chunk/i });
+    fireEvent.click(nextButtons[0]);
+    expect(handleNext).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Variant B (Split Studio & Focus Inspector)", () => {
+  const sampleChunks = PRESET_PARAGRAPHS[0].chunks;
+
+  it("renders preparing view with pipeline checklist and cancel button", () => {
+    const handleCancel = vi.fn();
+    render(
+      <VariantB
+        status="preparing"
+        chunks={[]}
+        activeChunkIndex={0}
+        onSelectChunk={vi.fn()}
+        onPrevChunk={vi.fn()}
+        onNextChunk={vi.fn()}
+        onCancelPreparing={handleCancel}
+        onExitPractice={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("variant-b-preparing")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(handleCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders 2-column layout with numbered score track and active chunk inspector", () => {
+    const handleSelect = vi.fn();
+    render(
+      <VariantB
+        status="practicing"
+        chunks={sampleChunks}
+        activeChunkIndex={0}
+        onSelectChunk={handleSelect}
+        onPrevChunk={vi.fn()}
+        onNextChunk={vi.fn()}
+        onCancelPreparing={vi.fn()}
+        onExitPractice={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("variant-b-practice")).toBeInTheDocument();
+    expect(screen.getByText(/rhythm score/i)).toBeInTheDocument();
+    expect(screen.getByText(/active chunk drill/i)).toBeInTheDocument();
+    expect(screen.getByTestId("focus-word-accent")).toBeInTheDocument();
+
+    // Click line 2
+    const lines = screen.getAllByRole("button");
+    const line2 = lines.find((el) => el.textContent?.includes("02"));
+    expect(line2).toBeDefined();
+    if (line2) {
+      fireEvent.click(line2);
+      expect(handleSelect).toHaveBeenCalledWith(1);
+    }
+  });
+});
+
+describe("Variant C (Flow Ribbon)", () => {
+  const sampleChunks = PRESET_PARAGRAPHS[0].chunks;
+
+  it("renders rhythm stream and docked sticky ribbon", () => {
+    const handleSelect = vi.fn();
+    const handleExit = vi.fn();
+
+    render(
+      <VariantC
+        status="practicing"
+        chunks={sampleChunks}
+        activeChunkIndex={0}
+        onSelectChunk={handleSelect}
+        onPrevChunk={vi.fn()}
+        onNextChunk={vi.fn()}
+        onCancelPreparing={vi.fn()}
+        onExitPractice={handleExit}
+      />
+    );
+
+    expect(screen.getByTestId("variant-c-practice")).toBeInTheDocument();
+    expect(screen.getByTestId("focus-word-accent")).toBeInTheDocument();
+
+    const exitBtn = screen.getByRole("button", { name: /exit/i });
+    fireEvent.click(exitBtn);
+    expect(handleExit).toHaveBeenCalledTimes(1);
+  });
+});

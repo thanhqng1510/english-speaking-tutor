@@ -1,10 +1,26 @@
 export const MAX_PRACTICE_CHARACTERS = 1200;
 
+export type PartRole = "normal" | "focus_word";
+
+export interface ChunkPart {
+  readonly text: string;
+  readonly role: PartRole;
+}
+
+export interface Chunk {
+  readonly parts: readonly ChunkPart[];
+}
+
+export type PracticeSessionStatus = "draft" | "preparing" | "practicing";
+
 export interface PracticeSessionState {
+  status?: PracticeSessionStatus;
   text: string;
   characterCount: number;
   maxCharacters: number;
   isValid: boolean;
+  chunks?: readonly Chunk[];
+  activeChunkIndex?: number;
 }
 
 export function clampPracticeText(
