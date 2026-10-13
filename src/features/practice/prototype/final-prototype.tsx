@@ -221,46 +221,47 @@ export function FinalPrototype({
                   : "opacity-30 hover:opacity-60 text-muted-foreground"
               }`}
             >
-              {chunk.parts.map((part, partIdx) => {
-                const isFocus = part.role === "focus_word";
-                if (!isFocus) {
+              <span className="inline-block relative">
+                {chunk.parts.map((part, partIdx) => {
+                  const isFocus = part.role === "focus_word";
+                  if (!isFocus) {
+                    return (
+                      <span key={partIdx} className="transition-colors duration-300 ease-out">
+                        {part.text}
+                      </span>
+                    );
+                  }
+
                   return (
-                    <span key={partIdx} className="transition-colors duration-300 ease-out">
+                    <span
+                      key={partIdx}
+                      data-testid={isActive ? "focus-word-accent" : undefined}
+                      className={`inline transition-all duration-300 ease-out ${
+                        isActive
+                          ? "italic font-black text-foreground underline decoration-[2.5px] decoration-foreground underline-offset-8 tracking-wide text-[1.12em]"
+                          : "italic font-bold text-foreground/90 underline decoration-1 decoration-foreground/40 underline-offset-6"
+                      }`}
+                    >
                       {part.text}
                     </span>
                   );
-                }
+                })}
 
-                return (
+                {/* Minimal voice playing cue: 3 subtle animated soundwave bars, absolutely positioned to zero out layout shift */}
+                {isActive && (
                   <span
-                    key={partIdx}
-                    data-testid={isActive ? "focus-word-accent" : undefined}
-                    className={`inline transition-all duration-300 ease-out ${
-                      isActive
-                        ? "italic font-bold text-primary text-[1.08em]"
-                        : "italic font-semibold text-foreground/75"
+                    data-testid="audio-playing-indicator"
+                    aria-label={isAudioPlaying ? "Voice playing" : undefined}
+                    className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-primary transition-opacity duration-200 pointer-events-none ${
+                      isAudioPlaying ? "opacity-100" : "opacity-0"
                     }`}
                   >
-                    {part.text}
+                    <span className="w-0.5 h-2.5 bg-current rounded-full animate-pulse" />
+                    <span className="w-0.5 h-4 bg-current rounded-full animate-pulse [animation-delay:150ms]" />
+                    <span className="w-0.5 h-2 bg-current rounded-full animate-pulse [animation-delay:300ms]" />
                   </span>
-                );
-              })}
-
-              {/* Visual cue: Active voice playback indicator directly on the chunk */}
-              {isActive && isAudioPlaying && (
-                <span
-                  data-testid="audio-playing-indicator"
-                  className="inline-flex items-center gap-1.5 ml-2.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-sans font-medium align-middle animate-in fade-in duration-200"
-                >
-                  <Volume2 className="h-3.5 w-3.5 animate-pulse" />
-                  <span className="font-semibold tracking-wide">Speaking…</span>
-                  <span className="inline-flex items-center gap-0.5">
-                    <span className="w-0.5 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
-                    <span className="w-0.5 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
-                    <span className="w-0.5 h-1.5 bg-primary rounded-full animate-bounce" />
-                  </span>
-                </span>
-              )}
+                )}
+              </span>
             </div>
           );
         })}
@@ -315,18 +316,10 @@ export function FinalPrototype({
             playCurrentChunk();
           }}
           aria-label="Listen to active chunk"
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-colors font-medium ${
-            isAudioPlaying
-              ? "bg-primary text-primary-foreground shadow-2xs"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
         >
-          {isAudioPlaying ? (
-            <Volume2 className="h-3.5 w-3.5 animate-pulse" />
-          ) : (
-            <Volume2 className="h-3.5 w-3.5" />
-          )}
-          <span>{isAudioPlaying ? "Playing…" : "Listen"}</span>
+          <Volume2 className={`h-3.5 w-3.5 ${isAudioPlaying ? "text-primary animate-pulse" : ""}`} />
+          <span>Listen</span>
         </button>
 
         {/* Hear Focus Word Only Button (Per Grilling Q2) */}

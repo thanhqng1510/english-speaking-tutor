@@ -321,7 +321,7 @@ describe("FinalPrototype (Unified Synthesized Design)", () => {
       />
     );
 
-    expect(screen.queryByTestId("audio-playing-indicator")).not.toBeInTheDocument();
+    expect(screen.getByTestId("audio-playing-indicator")).toHaveClass("opacity-0");
     expect(screen.getByText("Listen")).toBeInTheDocument();
 
     rerender(
@@ -340,8 +340,7 @@ describe("FinalPrototype (Unified Synthesized Design)", () => {
     );
 
     expect(screen.getByTestId("audio-playing-indicator")).toBeInTheDocument();
-    expect(screen.getByText("Speaking…")).toBeInTheDocument();
-    expect(screen.getByText("Playing…")).toBeInTheDocument();
+    expect(screen.getByTestId("audio-playing-indicator")).toHaveClass("opacity-100");
   });
 });
 
