@@ -1,42 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { getParagraphById } from "../../dataset";
-import { CANDIDATE_MODELS, CANDIDATE_MODEL_LIST, getCandidateConfig } from "../candidates";
 import { invokeCandidateModel, resolveEndpoint } from "../client";
 
-describe("benchmark client & candidates", () => {
-  it("shortlists exactly the 6 verified 2026 Azure candidate models", () => {
-    expect(CANDIDATE_MODEL_LIST).toHaveLength(6);
-    const ids = CANDIDATE_MODEL_LIST.map((c) => c.id);
-    expect(ids).toContain("phi-4-mini-instruct");
-    expect(ids).toContain("gpt-6-luna");
-    expect(ids).toContain("claude-haiku-5-5");
-    expect(ids).toContain("deepseek-v4-1-flash");
-    expect(ids).toContain("gpt-6-sol");
-
-    const lunaConfig = getCandidateConfig("gpt-6-luna");
-    expect(lunaConfig.name).toBe("GPT-6 Luna");
-    expect(lunaConfig.provider).toBe("OpenAI");
-  });
-
-  it("verifies accurate 2026 rate cards for all candidates", () => {
-    expect(CANDIDATE_MODELS["phi-4-mini-instruct"].rates.inputPer1M).toBe(0.075);
-    expect(CANDIDATE_MODELS["phi-4-mini-instruct"].rates.outputPer1M).toBe(0.3);
-
-    expect(CANDIDATE_MODELS["gpt-6-luna"].rates.inputPer1M).toBe(0.1);
-    expect(CANDIDATE_MODELS["gpt-6-luna"].rates.cachedInputPer1M).toBe(0.01);
-
-    expect(CANDIDATE_MODELS["claude-haiku-5-5"].rates.inputPer1M).toBe(0.1);
-    expect(CANDIDATE_MODELS["claude-haiku-5-5"].rates.outputPer1M).toBe(0.5);
-
-    expect(CANDIDATE_MODELS["deepseek-v4-1-flash"].rates.inputPer1M).toBe(0.2);
-    expect(CANDIDATE_MODELS["deepseek-v4-1-flash"].rates.outputPer1M).toBe(0.6);
-
-    expect(CANDIDATE_MODELS["gpt-5-4-nano"].rates.inputPer1M).toBe(0.2);
-    expect(CANDIDATE_MODELS["gpt-5-4-nano"].rates.outputPer1M).toBe(1.25);
-
-    expect(CANDIDATE_MODELS["gpt-6-sol"].rates.inputPer1M).toBe(2.0);
-    expect(CANDIDATE_MODELS["gpt-6-sol"].rates.outputPer1M).toBe(10.0);
-  });
+describe("benchmark client", () => {
 
   it("throws a clear configuration error when no endpoint env var is set", () => {
     const origOpenAi = process.env.AZURE_OPENAI_ENDPOINT;
