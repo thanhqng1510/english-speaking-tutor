@@ -238,7 +238,7 @@ describe("FinalPrototype (Unified Synthesized Design)", () => {
     const focusWordBtn = screen.getByRole("button", { name: /hear focus word in isolation/i });
     expect(focusWordBtn).toBeInTheDocument();
     fireEvent.click(focusWordBtn);
-    expect(handlePlayAudio).toHaveBeenCalledWith(expect.any(String));
+    expect(handlePlayAudio).toHaveBeenCalledWith(expect.any(String), expect.any(Number));
 
     // Bottom floating bar counter
     expect(screen.getByText("1")).toBeInTheDocument();
@@ -283,7 +283,7 @@ describe("FinalPrototype (Unified Synthesized Design)", () => {
 
     // Press Space on initial chunk 0
     fireEvent.keyDown(window, { key: " " });
-    expect(handlePlayAudio).toHaveBeenCalledWith(getChunkPlainText(sampleChunks[0]));
+    expect(handlePlayAudio).toHaveBeenCalledWith(getChunkPlainText(sampleChunks[0]), 0);
 
     // Advance to chunk 1
     rerender(
@@ -302,7 +302,7 @@ describe("FinalPrototype (Unified Synthesized Design)", () => {
 
     // Press Space again: must play Chunk 1, not the old Chunk 0
     fireEvent.keyDown(window, { key: " " });
-    expect(handlePlayAudio).toHaveBeenLastCalledWith(getChunkPlainText(sampleChunks[1]));
+    expect(handlePlayAudio).toHaveBeenLastCalledWith(getChunkPlainText(sampleChunks[1]), 1);
   });
 
   it("renders voice playing visual cue on active chunk and bottom bar when audio is playing", () => {
@@ -321,7 +321,7 @@ describe("FinalPrototype (Unified Synthesized Design)", () => {
       />
     );
 
-    expect(screen.getByTestId("audio-playing-indicator")).toHaveClass("opacity-0");
+    expect(screen.queryByTestId("audio-playing-indicator")).not.toBeInTheDocument();
     expect(screen.getByText("Listen")).toBeInTheDocument();
 
     rerender(
@@ -341,6 +341,30 @@ describe("FinalPrototype (Unified Synthesized Design)", () => {
 
     expect(screen.getByTestId("audio-playing-indicator")).toBeInTheDocument();
     expect(screen.getByTestId("audio-playing-indicator")).toHaveClass("opacity-100");
+  });
+
+  it("binds audio-playing-indicator strictly to playingChunkIndex, not activeChunkIndex", () => {
+    // When chunk 0 is actively playing, but activeChunkIndex is moved to chunk 1:
+    render(
+      <FinalPrototype
+        status="practicing"
+        chunks={sampleChunks}
+        activeChunkIndex={1}
+        playingChunkIndex={0}
+        onSelectChunk={vi.fn()}
+        onPrevChunk={vi.fn()}
+        onNextChunk={vi.fn()}
+        onCancelPreparing={vi.fn()}
+        onExitPractice={vi.fn()}
+        onPlayAudio={vi.fn()}
+        isAudioPlaying={true}
+      />
+    );
+
+    const indicator = screen.getByTestId("audio-playing-indicator");
+    const chunk0 = screen.getByLabelText(`Chunk 1: ${getChunkPlainText(sampleChunks[0])}`);
+    expect(chunk0).toContainElement(indicator);
+    expect(indicator).toHaveClass("opacity-100");
   });
 });
 

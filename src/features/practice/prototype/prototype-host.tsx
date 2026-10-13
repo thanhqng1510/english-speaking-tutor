@@ -40,6 +40,7 @@ export function PrototypePracticeHost() {
   const [simulateError, setSimulateError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
+  const [playingChunkIndex, setPlayingChunkIndex] = useState<number | null>(null);
   const [showStateInspector, setShowStateInspector] = useState<boolean>(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -50,6 +51,9 @@ export function PrototypePracticeHost() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (abortControllerRef.current) abortControllerRef.current.abort();
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, []);
 
@@ -88,7 +92,16 @@ export function PrototypePracticeHost() {
     [simulateError]
   );
 
+  const stopAudio = useCallback(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsAudioPlaying(false);
+    setPlayingChunkIndex(null);
+  }, []);
+
   const handleCancelPreparing = useCallback(() => {
+    stopAudio();
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -96,30 +109,36 @@ export function PrototypePracticeHost() {
       clearTimeout(timerRef.current);
     }
     setStatus("draft");
-  }, []);
+  }, [stopAudio]);
 
   const handleExitPractice = useCallback(() => {
+    stopAudio();
     setStatus("draft");
     setChunks([]);
     setActiveChunkIndex(0);
-  }, []);
+  }, [stopAudio]);
 
   const handleSelectChunk = useCallback((index: number) => {
+    stopAudio();
     setActiveChunkIndex(index);
-  }, []);
+  }, [stopAudio]);
 
   const handlePrevChunk = useCallback(() => {
+    stopAudio();
     setActiveChunkIndex((prev) => Math.max(0, prev - 1));
-  }, []);
+  }, [stopAudio]);
 
   const handleNextChunk = useCallback(() => {
+    stopAudio();
     setActiveChunkIndex((prev) => Math.min(chunks.length - 1, prev + 1));
-  }, [chunks.length]);
+  }, [chunks.length, stopAudio]);
 
-  const handlePlayAudio = useCallback((chunkText: string) => {
+  const handlePlayAudio = useCallback((chunkText: string, chunkIndex?: number) => {
+    const targetIndex = typeof chunkIndex === "number" ? chunkIndex : activeChunkIndex;
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       setIsAudioPlaying(true);
+      setPlayingChunkIndex(targetIndex);
       const utterance = new SpeechSynthesisUtterance(chunkText);
       utterance.rate = 0.9;
       utterance.pitch = 1.0;
@@ -129,24 +148,34 @@ export function PrototypePracticeHost() {
       const estimatedDurationMs = Math.max(1200, chunkText.split(/\s+/).length * 600);
       const safetyTimer = setTimeout(() => {
         setIsAudioPlaying(false);
+        setPlayingChunkIndex(null);
       }, estimatedDurationMs + 600);
 
-      utterance.onstart = () => setIsAudioPlaying(true);
+      utterance.onstart = () => {
+        setIsAudioPlaying(true);
+        setPlayingChunkIndex(targetIndex);
+      };
       utterance.onend = () => {
         clearTimeout(safetyTimer);
         setIsAudioPlaying(false);
+        setPlayingChunkIndex(null);
       };
       utterance.onerror = () => {
         clearTimeout(safetyTimer);
         setIsAudioPlaying(false);
+        setPlayingChunkIndex(null);
       };
 
       window.speechSynthesis.speak(utterance);
     } else {
       setIsAudioPlaying(true);
-      setTimeout(() => setIsAudioPlaying(false), 800);
+      setPlayingChunkIndex(targetIndex);
+      setTimeout(() => {
+        setIsAudioPlaying(false);
+        setPlayingChunkIndex(null);
+      }, 800);
     }
-  }, []);
+  }, [activeChunkIndex]);
 
   const handleLoadPreset = (presetText: string) => {
     setText(presetText);
@@ -274,6 +303,7 @@ export function PrototypePracticeHost() {
           status={status}
           chunks={chunks}
           activeChunkIndex={activeChunkIndex}
+          playingChunkIndex={playingChunkIndex}
           onSelectChunk={handleSelectChunk}
           onPrevChunk={handlePrevChunk}
           onNextChunk={handleNextChunk}

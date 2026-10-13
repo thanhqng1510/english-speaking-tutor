@@ -16,12 +16,13 @@ export interface FinalPrototypeProps {
   status: "draft" | "preparing" | "practicing";
   chunks: readonly Chunk[];
   activeChunkIndex: number;
+  playingChunkIndex?: number | null;
   onSelectChunk: (index: number) => void;
   onPrevChunk: () => void;
   onNextChunk: () => void;
   onCancelPreparing: () => void;
   onExitPractice: () => void;
-  onPlayAudio?: (text: string) => void;
+  onPlayAudio?: (text: string, chunkIndex?: number) => void;
   isAudioPlaying?: boolean;
 }
 
@@ -29,6 +30,7 @@ export function FinalPrototype({
   status,
   chunks,
   activeChunkIndex,
+  playingChunkIndex,
   onSelectChunk,
   onPrevChunk,
   onNextChunk,
@@ -53,18 +55,18 @@ export function FinalPrototype({
   const playCurrentChunk = useCallback(() => {
     const target = currentChunkRef.current;
     if (target && onPlayAudio) {
-      onPlayAudio(getChunkPlainText(target));
+      onPlayAudio(getChunkPlainText(target), activeChunkIndex);
     }
-  }, [onPlayAudio]);
+  }, [onPlayAudio, activeChunkIndex]);
 
   // Play audio for only the Focus Word in isolation (Per Grilling Q2)
   const playFocusWordOnly = useCallback(() => {
     const target = currentChunkRef.current;
     const focusWord = target ? getChunkFocusWord(target) : "";
     if (focusWord && onPlayAudio) {
-      onPlayAudio(focusWord);
+      onPlayAudio(focusWord, activeChunkIndex);
     }
-  }, [onPlayAudio]);
+  }, [onPlayAudio, activeChunkIndex]);
 
   // Keyboard navigation for practice mode
   useEffect(() => {
@@ -189,6 +191,10 @@ export function FinalPrototype({
       >
         {chunks.map((chunk, index) => {
           const isActive = index === activeChunkIndex;
+          const isThisChunkPlaying =
+            (playingChunkIndex !== undefined && playingChunkIndex !== null
+              ? playingChunkIndex === index
+              : isActive) && Boolean(isAudioPlaying);
 
           return (
             <div
@@ -201,7 +207,7 @@ export function FinalPrototype({
                 } else {
                   onSelectChunk(index);
                   if (onPlayAudio) {
-                    onPlayAudio(getChunkPlainText(chunk));
+                    onPlayAudio(getChunkPlainText(chunk), index);
                   }
                 }
               }}
@@ -247,20 +253,18 @@ export function FinalPrototype({
                   );
                 })}
 
-                {/* Minimal voice playing cue: 3 subtle animated soundwave bars, absolutely positioned to zero out layout shift */}
-                {isActive && (
-                  <span
-                    data-testid="audio-playing-indicator"
-                    aria-label={isAudioPlaying ? "Voice playing" : undefined}
-                    className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-primary transition-opacity duration-200 pointer-events-none ${
-                      isAudioPlaying ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    <span className="w-0.5 h-2.5 bg-current rounded-full animate-pulse" />
-                    <span className="w-0.5 h-4 bg-current rounded-full animate-pulse [animation-delay:150ms]" />
-                    <span className="w-0.5 h-2 bg-current rounded-full animate-pulse [animation-delay:300ms]" />
-                  </span>
-                )}
+                {/* Minimal voice playing cue: strictly bound to the chunk actually playing */}
+                <span
+                  data-testid={isThisChunkPlaying ? "audio-playing-indicator" : undefined}
+                  aria-label={isThisChunkPlaying ? "Voice playing" : undefined}
+                  className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-primary transition-opacity duration-200 pointer-events-none ${
+                    isThisChunkPlaying ? "opacity-100" : "opacity-0"
+                  }`}
+                >
+                  <span className="w-0.5 h-2.5 bg-current rounded-full animate-pulse" />
+                  <span className="w-0.5 h-4 bg-current rounded-full animate-pulse [animation-delay:150ms]" />
+                  <span className="w-0.5 h-2 bg-current rounded-full animate-pulse [animation-delay:300ms]" />
+                </span>
               </span>
             </div>
           );
