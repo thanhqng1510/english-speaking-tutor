@@ -52,6 +52,146 @@ export function resolveEndpoint(candidateId: CandidateModelId): string {
   );
 }
 
+interface AzureChatCompletionResponse {
+  choices?: Array<{ message?: { content?: string } }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number };
+  };
+}
+
+/**
+ * Builds standard chat completion request payload with uniform prompt and JSON schema.
+ */
+export function buildChatCompletionPayload(candidateId: CandidateModelId, text: string) {
+  return {
+    model: candidateId,
+    messages: [
+      { role: "system", content: CHUNKING_SYSTEM_PROMPT },
+      { role: "user", content: buildChunkingUserPrompt(text) },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: CHUNKING_JSON_SCHEMA,
+    },
+    temperature: 0,
+  };
+}
+
+/**
+ * Extracts and validates token usage telemetry from Azure API response.
+ */
+export function extractTokenUsage(usage: unknown): TokenUsage {
+  const u = usage as {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number };
+  } | undefined;
+
+  if (typeof u?.prompt_tokens !== "number" || typeof u?.completion_tokens !== "number") {
+    throw new Error(
+      "Azure API response is missing token usage telemetry (data.usage.prompt_tokens / data.usage.completion_tokens)"
+    );
+  }
+
+  return {
+    promptTokens: u.prompt_tokens,
+    completionTokens: u.completion_tokens,
+    cachedTokens: u.prompt_tokens_details?.cached_tokens ?? 0,
+  };
+}
+
+/**
+ * Parses optional server-side processing latency header from Azure response.
+ */
+export function parseServerProcessingMs(response: Response): number | null {
+  const header = response.headers.get("openai-processing-ms");
+  return header ? parseInt(header, 10) : null;
+}
+
+/**
+ * Executes HTTP request with timeout protection and returns parsed JSON.
+ */
+async function executeHttpCall(
+  endpoint: string,
+  authToken: string,
+  payload: unknown,
+  options: { timeoutMs: number; fetchFn: typeof globalThis.fetch }
+): Promise<{ data: AzureChatCompletionResponse; serverProcessingMs: number | null }> {
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => controller.abort(), options.timeoutMs);
+
+  try {
+    const response = await options.fetchFn(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Azure API error (${response.status} ${response.statusText}): ${errorText}`);
+    }
+
+    const serverProcessingMs = parseServerProcessingMs(response);
+    const data = (await response.json()) as AzureChatCompletionResponse;
+    return { data, serverProcessingMs };
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
+}
+
+/**
+ * Safely parses ChunkingResult JSON without throwing.
+ */
+function safelyParseChunkingJson(rawContent: string): ChunkingResult | null {
+  try {
+    return JSON.parse(rawContent) as ChunkingResult;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Constructs a structured ModelInvocationResult for invocation errors.
+ */
+export function createInvocationFailureResult(
+  candidateId: CandidateModelId,
+  paragraph: PracticeParagraph,
+  roundTripMs: number,
+  errorMessage: string
+): ModelInvocationResult {
+  return {
+    candidateId,
+    paragraphId: paragraph.id,
+    paragraphTitle: paragraph.title,
+    lengthTier: paragraph.lengthTier,
+    characterCount: paragraph.characterCount,
+    wordCount: paragraph.wordCount,
+    rawResponse: "",
+    parsed: null,
+    validation: {
+      isValid: false,
+      schemaValid: false,
+      focusWordValid: false,
+      textIntegrityValid: false,
+      chunkLengthBoundsValid: false,
+      chunkLengthIssues: [],
+      errors: [`Model invocation failed: ${errorMessage}`],
+    },
+    roundTripMs,
+    serverProcessingMs: null,
+    tokens: { promptTokens: 0, completionTokens: 0, cachedTokens: 0 },
+    costUsd: 0,
+    error: errorMessage,
+  };
+}
+
 /**
  * Invokes a candidate model with uniform prompt and strict schema.
  */
@@ -63,7 +203,6 @@ export async function invokeCandidateModel(
   const config = getCandidateConfig(candidateId);
   const timeoutMs = options.timeoutMs ?? config.defaultTimeoutMs;
   const fetchFn = options.fetch ?? globalThis.fetch;
-
   const endpoint = options.endpoint ?? resolveEndpoint(candidateId);
   const startTime = performance.now();
 
@@ -71,75 +210,17 @@ export async function invokeCandidateModel(
     const credential = options.credential ?? getCredential();
     const tokenResponse = await credential.getToken("https://cognitiveservices.azure.com/.default");
 
-    const payload = {
-      model: candidateId,
-      messages: [
-        { role: "system", content: CHUNKING_SYSTEM_PROMPT },
-        { role: "user", content: buildChunkingUserPrompt(paragraph.text) },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: CHUNKING_JSON_SCHEMA,
-      },
-      temperature: 0,
-    };
-
-    const controller = new AbortController();
-    const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
-
-    const response = await fetchFn(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${tokenResponse.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
+    const payload = buildChatCompletionPayload(candidateId, paragraph.text);
+    const { data, serverProcessingMs } = await executeHttpCall(endpoint, tokenResponse.token, payload, {
+      timeoutMs,
+      fetchFn,
     });
 
-    clearTimeout(timeoutHandle);
     const roundTripMs = Math.round(performance.now() - startTime);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Azure API error (${response.status} ${response.statusText}): ${errorText}`);
-    }
-
-    const serverHeader = response.headers.get("openai-processing-ms");
-    const serverProcessingMs = serverHeader ? parseInt(serverHeader, 10) : null;
-
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-      usage?: {
-        prompt_tokens?: number;
-        completion_tokens?: number;
-        prompt_tokens_details?: { cached_tokens?: number };
-      };
-    };
-
     const rawContent = data.choices?.[0]?.message?.content || "";
-    if (
-      typeof data.usage?.prompt_tokens !== "number" ||
-      typeof data.usage?.completion_tokens !== "number"
-    ) {
-      throw new Error(
-        "Azure API response is missing token usage telemetry (data.usage.prompt_tokens / data.usage.completion_tokens)"
-      );
-    }
-    const promptTokens = data.usage.prompt_tokens;
-    const completionTokens = data.usage.completion_tokens;
-    const cachedTokens = data.usage.prompt_tokens_details?.cached_tokens ?? 0;
-
-    const tokens: TokenUsage = { promptTokens, completionTokens, cachedTokens };
+    const tokens = extractTokenUsage(data.usage);
     const costUsd = calculateCallCost(config.rates, tokens);
     const validation = validateChunkingOutput(rawContent, paragraph.text);
-
-    let parsedResult: ChunkingResult | null = null;
-    try {
-      parsedResult = JSON.parse(rawContent) as ChunkingResult;
-    } catch {
-      // Handled by validation
-    }
 
     return {
       candidateId,
@@ -149,7 +230,7 @@ export async function invokeCandidateModel(
       characterCount: paragraph.characterCount,
       wordCount: paragraph.wordCount,
       rawResponse: rawContent,
-      parsed: parsedResult,
+      parsed: safelyParseChunkingJson(rawContent),
       validation,
       roundTripMs,
       serverProcessingMs,
@@ -160,30 +241,6 @@ export async function invokeCandidateModel(
   } catch (err) {
     const roundTripMs = Math.round(performance.now() - startTime);
     const errorMessage = err instanceof Error ? err.message : String(err);
-
-    return {
-      candidateId,
-      paragraphId: paragraph.id,
-      paragraphTitle: paragraph.title,
-      lengthTier: paragraph.lengthTier,
-      characterCount: paragraph.characterCount,
-      wordCount: paragraph.wordCount,
-      rawResponse: "",
-      parsed: null,
-      validation: {
-        isValid: false,
-        schemaValid: false,
-        focusWordValid: false,
-        textIntegrityValid: false,
-        chunkLengthBoundsValid: false,
-        chunkLengthIssues: [],
-        errors: [`Model invocation failed: ${errorMessage}`],
-      },
-      roundTripMs,
-      serverProcessingMs: null,
-      tokens: { promptTokens: 0, completionTokens: 0, cachedTokens: 0 },
-      costUsd: 0,
-      error: errorMessage,
-    };
+    return createInvocationFailureResult(candidateId, paragraph, roundTripMs, errorMessage);
   }
 }
