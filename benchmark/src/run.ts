@@ -1,21 +1,22 @@
 import * as fs from "fs";
 import * as path from "path";
 import {
-  DATASET_PARTITIONS,
+  ALL_DATASET_PARTITIONS,
   getParagraphs,
   type DatasetPartition,
   type PracticeParagraph,
 } from "../dataset";
-import { DEFAULT_CANDIDATE_IDS, getCandidateConfig } from "./candidates";
+import { getCandidateConfig } from "./candidates";
 import { invokeCandidateModel, resolveEndpoint } from "./client";
 import { aggregateCandidateMetrics, calculateLearnerCostProjections } from "./metrics";
 import { saveBenchmarkArtifacts } from "./reporter";
-import type {
-  BenchmarkRunReportData,
-  CandidateAggregateMetrics,
-  CandidateCostProjection,
-  CandidateModelId,
-  ModelInvocationResult,
+import {
+  ALL_CANDIDATE_IDS,
+  type BenchmarkRunReportData,
+  type CandidateAggregateMetrics,
+  type CandidateCostProjection,
+  type CandidateModelId,
+  type ModelInvocationResult,
 } from "./types";
 
 export const DEFAULT_DATASET_PARTITION: DatasetPartition = "evaluation";
@@ -34,7 +35,7 @@ export interface BenchmarkRunnerConfig {
 
 export function parseCliArguments(args: string[]): BenchmarkRunnerConfig {
   let partition: DatasetPartition | "all" = DEFAULT_DATASET_PARTITION;
-  let candidateIds: CandidateModelId[] = [...DEFAULT_CANDIDATE_IDS];
+  let candidateIds: CandidateModelId[] = [...ALL_CANDIDATE_IDS];
   let delayMs = DEFAULT_PACING_DELAY_MS;
   let dryRun = false;
   let limit: number | undefined;
@@ -46,7 +47,7 @@ export function parseCliArguments(args: string[]): BenchmarkRunnerConfig {
       dryRun = true;
     } else if (arg === "--set" && i + 1 < args.length) {
       const val = args[++i];
-      if (val === "all" || (DATASET_PARTITIONS as readonly string[]).includes(val)) {
+      if (val === "all" || ALL_DATASET_PARTITIONS.includes(val as DatasetPartition)) {
         partition = val as DatasetPartition | "all";
       }
     } else if (arg === "--models" && i + 1 < args.length) {

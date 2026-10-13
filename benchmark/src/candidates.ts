@@ -1,5 +1,5 @@
 import {
-  CANDIDATE_MODEL_IDS,
+  ALL_CANDIDATE_IDS,
   type CandidateModelConfig,
   type CandidateModelId,
 } from "./types";
@@ -7,7 +7,7 @@ import {
 const DEFAULT_TIMEOUT_MS = 15000;
 const REASONING_MODEL_TIMEOUT_MS = 25000;
 
-export const DEFAULT_CANDIDATE_IDS: readonly CandidateModelId[] = CANDIDATE_MODEL_IDS;
+export const DEFAULT_CANDIDATE_IDS: readonly CandidateModelId[] = ALL_CANDIDATE_IDS;
 
 export const CANDIDATE_MODELS: Record<CandidateModelId, CandidateModelConfig> = {
   "phi-4-mini-instruct": {

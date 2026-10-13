@@ -1,5 +1,5 @@
 import {
-  LENGTH_TIERS,
+  ALL_LENGTH_TIERS,
   type CandidateAggregateMetrics,
   type CandidateCostProjection,
   type CandidateModelConfig,
@@ -160,7 +160,7 @@ export function calculateLearnerCostProjections(
   config: CandidateModelConfig,
   results: readonly ModelInvocationResult[]
 ): CandidateCostProjection {
-  const tiers: LearnerCostTierProjection[] = LENGTH_TIERS.map((tier) => {
+  const tiers: LearnerCostTierProjection[] = ALL_LENGTH_TIERS.map((tier) => {
       const tierResults = results.filter(
         (r): r is ModelInvocationResult & { tokens: TokenUsage } =>
           r.lengthTier === tier && r.tokens !== null

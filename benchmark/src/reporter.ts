@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import {
-  LENGTH_TIERS,
+  ALL_LENGTH_TIERS,
   type BenchmarkRunReportData,
   type CandidateAggregateMetrics,
   type CandidateCostProjection,
@@ -77,7 +77,7 @@ export function renderLearnerCostSimulatorSection(
   for (const c of candidates) {
     const proj = costProjections[c.candidateId];
     if (proj) {
-      const tierCells = LENGTH_TIERS.map((tier) => {
+      const tierCells = ALL_LENGTH_TIERS.map((tier) => {
         const cost = proj.tiers.find((t) => t.tier === tier)?.costPerSessionUsd ?? 0;
         return `$${cost.toFixed(6)}`;
       });

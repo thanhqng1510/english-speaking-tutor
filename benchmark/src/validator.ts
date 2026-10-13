@@ -1,5 +1,5 @@
 import {
-  PART_ROLES,
+  ALL_PART_ROLES,
   type Chunk,
   type ChunkLengthIssue,
   type ChunkPart,
@@ -90,9 +90,9 @@ export function validateSchema(data: unknown): {
         continue;
       }
 
-      if (!PART_ROLES.includes(partObj.role as PartRole)) {
+      if (partObj.role !== "normal" && partObj.role !== "focus_word") {
         errors.push(
-          `Chunk ${cIdx}, part ${pIdx} 'role' must be one of [${PART_ROLES.join(", ")}], received: '${String(partObj.role)}'`
+          `Chunk ${cIdx}, part ${pIdx} 'role' must be one of [${ALL_PART_ROLES.join(", ")}], received: '${String(partObj.role)}'`
         );
         continue;
       }

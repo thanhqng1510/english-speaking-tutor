@@ -7,7 +7,7 @@ import {
   calculatePercentile,
   computeLatencyStats,
 } from "../metrics";
-import { LENGTH_TIERS, type ModelInvocationResult } from "../types";
+import { ALL_LENGTH_TIERS, type ModelInvocationResult } from "../types";
 
 describe("benchmark metrics and cost calculations", () => {
   describe("calculateCallCost", () => {
@@ -166,7 +166,7 @@ describe("benchmark metrics and cost calculations", () => {
       const proj = calculateLearnerCostProjections(config, []);
 
       expect(proj.tiers).toHaveLength(4);
-      expect(proj.tiers.map((t) => t.tier)).toEqual([...LENGTH_TIERS]);
+      expect(proj.tiers.map((t) => t.tier)).toEqual([...ALL_LENGTH_TIERS]);
       for (const t of proj.tiers) {
         expect(t.costPerSessionUsd).toBeGreaterThan(0);
         expect(t.averageCharacters).toBeGreaterThan(0);

@@ -1,11 +1,11 @@
-export const DATASET_PARTITIONS = ["tuning", "evaluation"] as const;
-export type DatasetPartition = (typeof DATASET_PARTITIONS)[number];
+export type DatasetPartition = "tuning" | "evaluation";
+export const ALL_DATASET_PARTITIONS: DatasetPartition[] = ["tuning", "evaluation"];
 
-export const PARAGRAPH_CATEGORIES = ["exam", "everyday", "learner"] as const;
-export type ParagraphCategory = (typeof PARAGRAPH_CATEGORIES)[number];
+export type ParagraphCategory = "exam" | "everyday" | "learner";
+export const ALL_PARAGRAPH_CATEGORIES: ParagraphCategory[] = ["exam", "everyday", "learner"];
 
-export const LENGTH_TIERS = ["short", "medium", "long", "ceiling"] as const;
-export type LengthTier = (typeof LENGTH_TIERS)[number];
+export type LengthTier = "short" | "medium" | "long" | "ceiling";
+export const ALL_LENGTH_TIERS: LengthTier[] = ["short", "medium", "long", "ceiling"];
 
 export type ProsodicChallengeTag =
   | "long-subject"

@@ -1,4 +1,4 @@
-import { PART_ROLES } from "./types";
+import { ALL_PART_ROLES } from "./types";
 
 export const CHUNKING_JSON_SCHEMA = {
   name: "chunking_result",
@@ -24,7 +24,7 @@ export const CHUNKING_JSON_SCHEMA = {
                   },
                   role: {
                     type: "string",
-                    enum: PART_ROLES,
+                    enum: ALL_PART_ROLES,
                     description: "Role of the part. Exactly one 'focus_word' per Chunk.",
                   },
                 },
@@ -41,7 +41,7 @@ export const CHUNKING_JSON_SCHEMA = {
     required: ["chunks"],
     additionalProperties: false,
   },
-} as const;
+};
 
 export const CHUNKING_SYSTEM_PROMPT = `You are an expert English speech and rhythm coach helping learners speak naturally.
 Your task is to divide the learner's spoken text into an ordered sequence of spoken Chunks and identify the single Focus Word in each Chunk.
