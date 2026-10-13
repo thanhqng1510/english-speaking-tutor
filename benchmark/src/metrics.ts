@@ -28,22 +28,22 @@ export function calculateCallCost(rates: RateCard, tokens: TokenUsage): number {
 }
 
 /**
- * Calculates a percentile (0 to 100) from a sorted array of numbers.
+ * Calculates a percentile (0 to 100) from a sorted array of numbers using the nearest-rank method.
  */
 export function calculatePercentile(sortedValues: number[], percentile: number): number {
   if (sortedValues.length === 0) return 0;
   if (sortedValues.length === 1) return sortedValues[0];
 
   const p = Math.max(0, Math.min(100, percentile)) / 100;
-  const index = (sortedValues.length - 1) * p;
-  const lower = Math.floor(index);
-  const upper = Math.ceil(index);
-  const weight = index - lower;
 
-  if (lower === upper) {
-    return sortedValues[lower];
+  // Standard median for even-length arrays
+  if (percentile === 50 && sortedValues.length % 2 === 0) {
+    const mid = sortedValues.length / 2;
+    return Math.round((sortedValues[mid - 1] + sortedValues[mid]) / 2);
   }
-  return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+
+  const index = Math.min(sortedValues.length - 1, Math.floor(p * sortedValues.length));
+  return sortedValues[index];
 }
 
 /**

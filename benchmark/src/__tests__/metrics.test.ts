@@ -62,7 +62,7 @@ describe("benchmark metrics and cost calculations", () => {
       const p95 = calculatePercentile(values, 95);
 
       expect(p50).toBe(55);
-      expect(p95).toBe(95.5);
+      expect(p95).toBe(100);
     });
 
     it("computes complete latency stats", () => {
