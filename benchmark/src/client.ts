@@ -9,8 +9,6 @@ import {
 } from "./prompt";
 import type {
   CandidateModelId,
-  Chunk,
-  ChunkPart,
   ChunkingResult,
   ModelInvocationResult,
   TokenUsage,
@@ -18,8 +16,10 @@ import type {
 import { validateChunkingOutput } from "./validator";
 
 export interface ModelClientOptions {
-  readonly dryRun?: boolean;
+  readonly endpoint?: string;
   readonly timeoutMs?: number;
+  readonly fetch?: typeof globalThis.fetch;
+  readonly credential?: { getToken: (scope: string) => Promise<{ token: string }> };
 }
 
 // Cached credential instance for keyless Entra ID auth across calls
@@ -53,64 +53,7 @@ export function resolveEndpoint(candidateId: CandidateModelId): string {
 }
 
 /**
- * Creates realistic mock chunking for offline testing and --dry-run mode.
- */
-export function generateMockChunking(paragraphText: string): ChunkingResult {
-  // Split paragraph by sentences and clause punctuation (commas, semicolons, em-dashes)
-  const segments = paragraphText
-    .split(/(?<=[.,!?;—])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-
-  const chunks: Chunk[] = [];
-
-  for (const seg of segments) {
-    const words = seg.split(/\s+/);
-    if (words.length <= 8) {
-      chunks.push(createMockChunk(words));
-    } else {
-      // Split into 4-6 word sub-chunks
-      const mid = Math.ceil(words.length / 2);
-      chunks.push(createMockChunk(words.slice(0, mid)));
-      chunks.push(createMockChunk(words.slice(mid)));
-    }
-  }
-
-  // Ensure whitespace between chunks joins cleanly
-  const refinedChunks: Chunk[] = [];
-
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    const prefix = i === 0 ? "" : " ";
-
-    // Re-assign parts with proper prefix space on first part
-    const parts: ChunkPart[] = chunk.parts.map((p, pIdx) => ({
-      text: pIdx === 0 ? prefix + p.text.trim() : " " + p.text.trim(),
-      role: p.role,
-    }));
-    refinedChunks.push({ parts });
-  }
-
-  return { chunks: refinedChunks };
-}
-
-function createMockChunk(words: string[]): Chunk {
-  if (words.length === 0) {
-    return { parts: [{ text: "", role: "normal" }, { text: "", role: "focus_word" }] };
-  }
-
-  // Pick a content word toward the end of the chunk as the focus word
-  const focusIndex = Math.max(0, words.length - 1);
-  const parts: ChunkPart[] = words.map((w, i) => ({
-    text: i === 0 ? w : ` ${w}`,
-    role: i === focusIndex ? "focus_word" : "normal",
-  }));
-
-  return { parts };
-}
-
-/**
- * Invokes a candidate model (or mock fixture in dry-run mode) with uniform prompt and schema.
+ * Invokes a candidate model with uniform prompt and strict schema.
  */
 export async function invokeCandidateModel(
   candidateId: CandidateModelId,
@@ -119,16 +62,13 @@ export async function invokeCandidateModel(
 ): Promise<ModelInvocationResult> {
   const config = getCandidateConfig(candidateId);
   const timeoutMs = options.timeoutMs ?? config.defaultTimeoutMs;
+  const fetchFn = options.fetch ?? globalThis.fetch;
 
-  if (options.dryRun) {
-    return executeDryRunInvocation(candidateId, paragraph, config);
-  }
-
-  const endpoint = resolveEndpoint(candidateId);
+  const endpoint = options.endpoint ?? resolveEndpoint(candidateId);
   const startTime = performance.now();
 
   try {
-    const credential = getCredential();
+    const credential = options.credential ?? getCredential();
     const tokenResponse = await credential.getToken("https://cognitiveservices.azure.com/.default");
 
     const payload = {
@@ -147,7 +87,7 @@ export async function invokeCandidateModel(
     const controller = new AbortController();
     const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
 
-    const response = await fetch(endpoint, {
+    const response = await fetchFn(endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${tokenResponse.token}`,
@@ -246,55 +186,4 @@ export async function invokeCandidateModel(
       error: errorMessage,
     };
   }
-}
-
-function executeDryRunInvocation(
-  candidateId: CandidateModelId,
-  paragraph: PracticeParagraph,
-  config: ReturnType<typeof getCandidateConfig>
-): ModelInvocationResult {
-  const mockResult = generateMockChunking(paragraph.text);
-  const rawResponse = JSON.stringify(mockResult, null, 2);
-
-  // Model-specific realistic simulated latency ranges
-  const baseLatency =
-    candidateId === "phi-4-mini-instruct"
-      ? 140
-      : candidateId === "gpt-5-4-nano"
-      ? 160
-      : candidateId === "gpt-6-luna"
-      ? 190
-      : candidateId === "claude-haiku-5-5"
-      ? 210
-      : candidateId === "deepseek-v4-1-flash"
-      ? 230
-      : 420; // gpt-6-sol
-
-  const roundTripMs = baseLatency + Math.round((paragraph.characterCount / 10) * (0.8 + Math.random() * 0.4));
-  const serverProcessingMs = Math.round(roundTripMs * 0.75);
-
-  const promptTokens = Math.round(paragraph.characterCount / 3.8) + 120; // paragraph + system prompt
-  const completionTokens = Math.round(paragraph.characterCount / 3.4) + 40;
-  const cachedTokens = config.rates.cachedInputPer1M < config.rates.inputPer1M ? 100 : 0;
-
-  const tokens: TokenUsage = { promptTokens, completionTokens, cachedTokens };
-  const costUsd = calculateCallCost(config.rates, tokens);
-  const validation = validateChunkingOutput(mockResult, paragraph.text);
-
-  return {
-    candidateId,
-    paragraphId: paragraph.id,
-    paragraphTitle: paragraph.title,
-    lengthTier: paragraph.lengthTier,
-    characterCount: paragraph.characterCount,
-    wordCount: paragraph.wordCount,
-    rawResponse,
-    parsed: mockResult,
-    validation,
-    roundTripMs,
-    serverProcessingMs,
-    tokens,
-    costUsd,
-    error: null,
-  };
 }

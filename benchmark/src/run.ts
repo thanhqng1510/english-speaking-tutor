@@ -19,6 +19,7 @@ export interface BenchmarkRunnerConfig {
   readonly dryRun: boolean;
   readonly limit?: number;
   readonly outputDir: string;
+  readonly clientOptions?: import("./client").ModelClientOptions;
 }
 
 export function parseCliArguments(args: string[]): BenchmarkRunnerConfig {
@@ -83,7 +84,7 @@ export async function runBenchmark(config: BenchmarkRunnerConfig): Promise<Bench
   console.log(`=======================================================`);
   console.log(` English Speaking Tutor: Chunking Benchmark Harness`);
   console.log(`=======================================================`);
-  console.log(`Mode:       ${config.dryRun ? "DRY-RUN (Mock Fixtures)" : "LIVE AZURE INFERENCE"}`);
+  console.log(`Mode:       ${config.dryRun ? "DRY-RUN (Plan Verification Only)" : "LIVE AZURE INFERENCE"}`);
   console.log(`Dataset:    ${config.partition} partition`);
   console.log(`Candidates: ${config.candidateIds.join(", ")}`);
   console.log(`Delay:      ${config.delayMs} ms between invocations`);
@@ -101,6 +102,27 @@ export async function runBenchmark(config: BenchmarkRunnerConfig): Promise<Bench
 
   console.log(`Loaded ${paragraphs.length} practice paragraphs.`);
 
+  if (config.dryRun) {
+    console.log(`\n✔ Dry-run execution plan verified:`);
+    console.log(`  - Candidates: ${config.candidateIds.join(", ")} (${config.candidateIds.length} models)`);
+    console.log(`  - Dataset partition: ${config.partition} (${paragraphs.length} paragraphs)`);
+    console.log(`  - Planned API calls: ${config.candidateIds.length * paragraphs.length}`);
+    console.log(`  - Pacing delay: ${config.delayMs} ms`);
+    console.log(`  - Output directory: ${config.outputDir}`);
+    console.log(`  (No network calls were made and no costs were incurred.)\n`);
+
+    return {
+      runId,
+      timestamp: startTime.toISOString(),
+      datasetPartition: config.partition,
+      totalParagraphs: paragraphs.length,
+      sequentialDelayMs: config.delayMs,
+      candidates: [],
+      costProjections: {} as Record<CandidateModelId, CandidateCostProjection>,
+      results: [],
+    };
+  }
+
   const allResults: ModelInvocationResult[] = [];
 
   for (const candidateId of config.candidateIds) {
@@ -115,9 +137,7 @@ export async function runBenchmark(config: BenchmarkRunnerConfig): Promise<Bench
         `  [${pIdx + 1}/${paragraphs.length}] ${paragraph.id.padEnd(16)} (${paragraph.characterCount}c, ${paragraph.lengthTier}) ... `
       );
 
-      const result = await invokeCandidateModel(candidateId, paragraph, {
-        dryRun: config.dryRun,
-      });
+      const result = await invokeCandidateModel(candidateId, paragraph, config.clientOptions);
 
       allResults.push(result);
 
@@ -131,7 +151,7 @@ export async function runBenchmark(config: BenchmarkRunnerConfig): Promise<Bench
         }
       }
 
-      if (!config.dryRun && config.delayMs > 0 && pIdx < paragraphs.length - 1) {
+      if (config.delayMs > 0 && pIdx < paragraphs.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, config.delayMs));
       }
     }
