@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   createPracticeSessionState,
   updatePracticeSessionText,
@@ -24,6 +24,15 @@ export function usePracticeSession(
   const [session, setSession] = useState(() =>
     createPracticeSessionState(initialText, maxCharacters)
   );
+
+  const lastInitialTextRef = useRef(initialText);
+
+  useEffect(() => {
+    if (lastInitialTextRef.current !== initialText) {
+      lastInitialTextRef.current = initialText;
+      setSession(createPracticeSessionState(initialText, maxCharacters));
+    }
+  }, [initialText, maxCharacters]);
 
   const setText = useCallback((value: string) => {
     setSession((prev) => updatePracticeSessionText(prev, value));
