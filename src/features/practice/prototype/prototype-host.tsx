@@ -21,7 +21,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
-  RotateCcw,
   X,
   FileText,
   Bug,
@@ -198,7 +197,7 @@ export function PrototypePracticeHost() {
         </div>
       </div>
 
-      {/* Error Toast Notification (Per ticket #21: error toast + revert to draft + retry) */}
+      {/* Error Toast Notification (Per ticket #21: error toast + revert to draft) */}
       {errorMessage && (
         <div
           role="alert"
@@ -210,26 +209,14 @@ export function PrototypePracticeHost() {
             <span className="font-medium">{errorMessage}</span>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleStartPractice(text)}
-              className="h-8 gap-1 text-xs border-destructive/30 bg-destructive/15 hover:bg-destructive/25 text-destructive"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Retry
-            </Button>
-            <button
-              type="button"
-              onClick={() => setErrorMessage(null)}
-              aria-label="Dismiss error"
-              className="p-1 rounded-md hover:bg-destructive/10 text-destructive"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            aria-label="Dismiss error"
+            className="p-1 rounded-md hover:bg-destructive/10 text-destructive shrink-0"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 

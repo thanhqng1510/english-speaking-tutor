@@ -40,16 +40,7 @@ export function FinalPrototype({
   const activeRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Smooth scroll active chunk to center
-  useEffect(() => {
-    if (status === "practicing" && activeRef.current && typeof activeRef.current.scrollIntoView === "function") {
-      activeRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
-  }, [activeChunkIndex, status]);
-
+  // Keep position stable without layout shifts or auto-scrolling
   const currentChunk = chunks[activeChunkIndex];
   const totalChunks = chunks.length;
   const activeFocusWord = currentChunk ? getChunkFocusWord(currentChunk) : "";
@@ -167,7 +158,7 @@ export function FinalPrototype({
             ref={containerRef}
             role="feed"
             aria-label="Vertical karaoke lyrics practice canvas"
-            className="w-full relative min-h-[400px] max-h-[540px] overflow-y-auto px-4 sm:px-6 py-20 space-y-7 rounded-2xl bg-card border shadow-xs scroll-smooth"
+            className="w-full relative min-h-[400px] max-h-[540px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-4 sm:px-6 py-12 space-y-3 rounded-2xl bg-card border shadow-xs"
           >
             {chunks.map((chunk, index) => {
               const isActive = index === activeChunkIndex;
@@ -203,10 +194,10 @@ export function FinalPrototype({
                   }}
                   aria-current={isActive ? "true" : undefined}
                   aria-label={`Chunk ${index + 1}: ${getChunkPlainText(chunk)}`}
-                  className={`group relative cursor-pointer text-center transition-all duration-300 rounded-xl px-4 py-3 select-none ${
+                  className={`group relative cursor-pointer text-center rounded-xl px-4 py-3 select-none transition-colors duration-150 text-xl sm:text-2xl leading-relaxed ${
                     isActive
-                      ? "opacity-100 scale-100 text-2xl sm:text-3xl font-medium tracking-tight text-foreground bg-muted/40 shadow-2xs"
-                      : "opacity-30 hover:opacity-60 scale-95 text-lg sm:text-xl font-normal text-muted-foreground"
+                      ? "opacity-100 font-semibold text-foreground bg-muted/50 shadow-xs"
+                      : "opacity-35 hover:opacity-65 text-muted-foreground font-normal bg-transparent"
                   }`}
                 >
                   {chunk.parts.map((part, partIdx) => {
