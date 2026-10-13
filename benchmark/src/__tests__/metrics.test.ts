@@ -61,7 +61,7 @@ describe("benchmark metrics and cost calculations", () => {
       const p50 = calculatePercentile(values, 50);
       const p95 = calculatePercentile(values, 95);
 
-      expect(p50).toBe(55);
+      expect(p50).toBe(50);
       expect(p95).toBe(100);
     });
 
@@ -151,8 +151,8 @@ describe("benchmark metrics and cost calculations", () => {
       expect(metrics.totalRuns).toBe(2);
       expect(metrics.passedRuns).toBe(1);
       expect(metrics.passRatePercent).toBe(50);
-      expect(metrics.latencyMs.p50).toBe(200);
-      expect(metrics.serverLatencyMs.p50).toBe(135);
+      expect(metrics.latencyMs.p50).toBe(180);
+      expect(metrics.serverLatencyMs.p50).toBe(120);
       expect(metrics.costPer1kRunsUsd).toBeCloseTo(0.0625, 3);
     });
   });

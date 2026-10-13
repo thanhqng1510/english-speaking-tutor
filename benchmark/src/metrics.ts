@@ -32,17 +32,9 @@ export function calculateCallCost(rates: RateCard, tokens: TokenUsage): number {
  */
 export function calculatePercentile(sortedValues: number[], percentile: number): number {
   if (sortedValues.length === 0) return 0;
-  if (sortedValues.length === 1) return sortedValues[0];
-
   const p = Math.max(0, Math.min(100, percentile)) / 100;
-
-  // Standard median for even-length arrays
-  if (percentile === 50 && sortedValues.length % 2 === 0) {
-    const mid = sortedValues.length / 2;
-    return Math.round((sortedValues[mid - 1] + sortedValues[mid]) / 2);
-  }
-
-  const index = Math.min(sortedValues.length - 1, Math.floor(p * sortedValues.length));
+  const rank = Math.ceil(p * sortedValues.length);
+  const index = Math.max(0, Math.min(sortedValues.length - 1, rank - 1));
   return sortedValues[index];
 }
 
