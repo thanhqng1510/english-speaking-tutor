@@ -1,7 +1,7 @@
 import * as path from "path";
 import { getParagraphs, type DatasetPartition, type PracticeParagraph } from "../dataset";
 import { getCandidateConfig } from "./candidates";
-import { invokeCandidateModel } from "./client";
+import { invokeCandidateModel, resolveEndpoint } from "./client";
 import { aggregateCandidateMetrics, calculateLearnerCostProjections } from "./metrics";
 import { saveBenchmarkArtifacts } from "./reporter";
 import type {
@@ -216,6 +216,22 @@ export function loadEnvironmentFiles(): void {
   }
 }
 
+export function validateRunnerPrerequisites(config: BenchmarkRunnerConfig): void {
+  if (config.dryRun) return;
+  if (config.clientOptions?.endpoint || config.clientOptions?.fetch) return;
+
+  for (const candidateId of config.candidateIds) {
+    try {
+      resolveEndpoint(candidateId);
+    } catch {
+      console.error(`\n❌ Error: No Azure endpoint configured for model "${candidateId}".`);
+      console.error(`To run live evaluations, set AZURE_AI_ENDPOINT in your .env.local (see .env.example).`);
+      console.error(`To test offline without Azure endpoints, run: npm run bench -- --dry-run\n`);
+      throw new Error(`Missing Azure endpoint configuration for model "${candidateId}".`);
+    }
+  }
+}
+
 export async function runBenchmark(config: BenchmarkRunnerConfig): Promise<BenchmarkRunReportData> {
   loadEnvironmentFiles();
 
@@ -231,6 +247,8 @@ export async function runBenchmark(config: BenchmarkRunnerConfig): Promise<Bench
   if (config.dryRun) {
     return executeDryRunPlan(runId, timestamp, config, paragraphs.length);
   }
+
+  validateRunnerPrerequisites(config);
 
   const allResults: ModelInvocationResult[] = [];
   for (const candidateId of config.candidateIds) {
@@ -248,8 +266,7 @@ export async function runBenchmark(config: BenchmarkRunnerConfig): Promise<Bench
 // Direct execution entrypoint
 if (typeof process !== "undefined" && process.argv && process.argv[1]?.includes("benchmark/src/run.ts")) {
   const config = parseCliArguments(process.argv.slice(2));
-  runBenchmark(config).catch((err) => {
-    console.error("Benchmark failed with error:", err);
+  runBenchmark(config).catch(() => {
     process.exit(1);
   });
 }

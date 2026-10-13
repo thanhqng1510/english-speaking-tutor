@@ -174,4 +174,26 @@ describe("benchmark CLI runner", () => {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it("fails fast during pre-flight check when live run has no endpoint configured", async () => {
+    const origEndpoint = process.env.AZURE_AI_ENDPOINT;
+    delete process.env.AZURE_AI_ENDPOINT;
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "bench-runner-preflight-"));
+
+    try {
+      await expect(
+        runBenchmark({
+          partition: "tuning",
+          candidateIds: ["gpt-6-luna"],
+          delayMs: 0,
+          dryRun: false,
+          limit: 1,
+          outputDir: tempDir,
+        })
+      ).rejects.toThrow(/Missing Azure endpoint configuration for model "gpt-6-luna"/);
+    } finally {
+      if (origEndpoint) process.env.AZURE_AI_ENDPOINT = origEndpoint;
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });

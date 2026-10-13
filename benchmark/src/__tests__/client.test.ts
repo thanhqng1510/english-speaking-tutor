@@ -5,29 +5,26 @@ import { invokeCandidateModel, resolveEndpoint } from "../client";
 describe("benchmark client", () => {
 
   it("throws a clear configuration error when no endpoint env var is set", () => {
-    const origOpenAi = process.env.AZURE_OPENAI_ENDPOINT;
-    const origFoundry = process.env.AZURE_AI_FOUNDRY_ENDPOINT;
-    delete process.env.AZURE_OPENAI_ENDPOINT;
-    delete process.env.AZURE_AI_FOUNDRY_ENDPOINT;
+    const origAi = process.env.AZURE_AI_ENDPOINT;
+    delete process.env.AZURE_AI_ENDPOINT;
     try {
       expect(() => resolveEndpoint("gpt-6-luna")).toThrow(
         /No Azure endpoint configured for model "gpt-6-luna"/
       );
     } finally {
-      if (origOpenAi) process.env.AZURE_OPENAI_ENDPOINT = origOpenAi;
-      if (origFoundry) process.env.AZURE_AI_FOUNDRY_ENDPOINT = origFoundry;
+      if (origAi) process.env.AZURE_AI_ENDPOINT = origAi;
     }
   });
 
   it("expands base host environment variable to standard Azure deployment chat completions path", () => {
-    process.env.AZURE_OPENAI_ENDPOINT = "https://custom.openai.azure.com";
+    process.env.AZURE_AI_ENDPOINT = "https://custom.cognitiveservices.azure.com";
     try {
       const endpoint = resolveEndpoint("gpt-6-luna");
       expect(endpoint).toBe(
-        "https://custom.openai.azure.com/openai/deployments/gpt-6-luna/chat/completions?api-version=2024-10-21"
+        "https://custom.cognitiveservices.azure.com/openai/deployments/gpt-6-luna/chat/completions?api-version=2024-10-21"
       );
     } finally {
-      delete process.env.AZURE_OPENAI_ENDPOINT;
+      delete process.env.AZURE_AI_ENDPOINT;
     }
   });
 

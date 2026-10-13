@@ -41,15 +41,11 @@ function getCredential(): DefaultAzureCredential {
  */
 export function resolveEndpoint(candidateId: CandidateModelId): string {
   const config = getCandidateConfig(candidateId);
-  const rawUrl =
-    process.env[config.defaultEndpointEnvVar] ||
-    process.env.AZURE_AI_FOUNDRY_ENDPOINT ||
-    process.env.AZURE_AI_ENDPOINT ||
-    process.env.AZURE_OPENAI_ENDPOINT;
+  const rawUrl = process.env[config.defaultEndpointEnvVar] || process.env.AZURE_AI_ENDPOINT;
 
   if (!rawUrl) {
     throw new Error(
-      `No Azure endpoint configured for model "${candidateId}". Please set ${config.defaultEndpointEnvVar}, AZURE_AI_ENDPOINT, or AZURE_OPENAI_ENDPOINT.`
+      `No Azure endpoint configured for model "${candidateId}". Please set AZURE_AI_ENDPOINT or ${config.defaultEndpointEnvVar}.`
     );
   }
 
