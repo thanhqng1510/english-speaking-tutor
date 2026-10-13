@@ -18,7 +18,7 @@ export interface PracticeSessionState {
   activeChunkIndex: number;
 }
 
-export type PrototypeVariantKey = "A" | "B" | "C";
+export type PrototypeVariantKey = "FINAL" | "A" | "B" | "C";
 
 export interface VariantDefinition {
   readonly key: PrototypeVariantKey;
@@ -28,18 +28,23 @@ export interface VariantDefinition {
 
 export const PROTOTYPE_VARIANTS: readonly VariantDefinition[] = [
   {
+    key: "FINAL",
+    name: "Unified Final",
+    description: "Immersive canvas, neutral filling progress bar, right info panel, and sleek bottom ribbon",
+  },
+  {
     key: "A",
     name: "Teleprompter",
-    description: "Centered karaoke teleprompter with depth-of-field dimming and glowing focus pill",
+    description: "Centered karaoke teleprompter with depth-of-field dimming",
   },
   {
     key: "B",
     name: "Split Studio",
-    description: "Two-column studio with rhythm score list and dedicated Focus Inspector card",
+    description: "Two-column studio with rhythm score list and inspector",
   },
   {
     key: "C",
     name: "Flow Ribbon",
-    description: "Document rhythm card stream with docked bottom media ribbon",
+    description: "Document rhythm card stream with docked media ribbon",
   },
 ];

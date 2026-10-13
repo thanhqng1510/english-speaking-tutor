@@ -9,6 +9,7 @@ import {
 import { VariantA } from "./variant-a";
 import { VariantB } from "./variant-b";
 import { VariantC } from "./variant-c";
+import { FinalPrototype } from "./final-prototype";
 
 describe("Prototype Mock Data & Chunker", () => {
   it("loads predefined presets with exactly one Focus Word per chunk and exact reassembly", () => {
@@ -181,6 +182,80 @@ describe("Variant C (Flow Ribbon)", () => {
     const exitBtn = screen.getByRole("button", { name: /exit/i });
     fireEvent.click(exitBtn);
     expect(handleExit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("FinalPrototype (Unified Synthesized Design)", () => {
+  const sampleChunks = PRESET_PARAGRAPHS[0].chunks;
+
+  it("renders preparing view with dedicated filling progress bar and cancel button", () => {
+    const handleCancel = vi.fn();
+    render(
+      <FinalPrototype
+        status="preparing"
+        chunks={[]}
+        activeChunkIndex={0}
+        onSelectChunk={vi.fn()}
+        onPrevChunk={vi.fn()}
+        onNextChunk={vi.fn()}
+        onCancelPreparing={handleCancel}
+        onExitPractice={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("final-preparing")).toBeInTheDocument();
+    expect(screen.getByText(/preparing your practice session/i)).toBeInTheDocument();
+    const cancelBtn = screen.getByRole("button", { name: /cancel preparation/i });
+    fireEvent.click(cancelBtn);
+    expect(handleCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders practicing view with lyrics canvas, Focus Word pill, right panel, and bottom floating bar", () => {
+    const handleSelect = vi.fn();
+    const handleNext = vi.fn();
+    const handlePrev = vi.fn();
+    const handleExit = vi.fn();
+    const handlePlayAudio = vi.fn();
+
+    render(
+      <FinalPrototype
+        status="practicing"
+        chunks={sampleChunks}
+        activeChunkIndex={0}
+        onSelectChunk={handleSelect}
+        onPrevChunk={handlePrev}
+        onNextChunk={handleNext}
+        onCancelPreparing={vi.fn()}
+        onExitPractice={handleExit}
+        onPlayAudio={handlePlayAudio}
+      />
+    );
+
+    expect(screen.getByTestId("final-practice")).toBeInTheDocument();
+    expect(screen.getByTestId("focus-word-accent")).toBeInTheDocument();
+
+    // Right-hand side panel
+    expect(screen.getByText(/chunk focus/i)).toBeInTheDocument();
+    expect(screen.getByText(/key pitch stress:/i)).toBeInTheDocument();
+
+    // Bottom floating bar counter
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+
+    // Single exit button
+    const exitBtn = screen.getByRole("button", { name: /exit practice to draft/i });
+    fireEvent.click(exitBtn);
+    expect(handleExit).toHaveBeenCalledTimes(1);
+
+    // Audio replay button in bottom bar
+    const listenBtn = screen.getByRole("button", { name: /listen to active chunk/i });
+    fireEvent.click(listenBtn);
+    expect(handlePlayAudio).toHaveBeenCalledTimes(1);
+
+    // Next chunk in bottom bar
+    const nextBtn = screen.getByRole("button", { name: /next chunk/i });
+    fireEvent.click(nextBtn);
+    expect(handleNext).toHaveBeenCalledTimes(1);
   });
 });
 

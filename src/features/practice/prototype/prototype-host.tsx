@@ -6,6 +6,7 @@ import { PracticeWorkspace } from "../components/practice-workspace";
 import { VariantA } from "./variant-a";
 import { VariantB } from "./variant-b";
 import { VariantC } from "./variant-c";
+import { FinalPrototype } from "./final-prototype";
 import { PrototypeSwitcher } from "@/components/prototype-switcher";
 import {
   PROTOTYPE_VARIANTS,
@@ -29,10 +30,10 @@ import {
 
 export function PrototypePracticeHost() {
   const searchParams = useSearchParams();
-  const rawVariant = (searchParams?.get("variant")?.toUpperCase() ?? "A") as PrototypeVariantKey;
-  const currentVariant: PrototypeVariantKey = ["A", "B", "C"].includes(rawVariant)
+  const rawVariant = (searchParams?.get("variant")?.toUpperCase() ?? "FINAL") as PrototypeVariantKey;
+  const currentVariant: PrototypeVariantKey = ["FINAL", "A", "B", "C"].includes(rawVariant)
     ? rawVariant
-    : "A";
+    : "FINAL";
 
   const [status, setStatus] = useState<PracticeSessionStatus>("draft");
   const [text, setText] = useState<string>(PRESET_PARAGRAPHS[0].text);
@@ -255,6 +256,21 @@ export function PrototypePracticeHost() {
           value={text}
           onChange={setText}
           onStartPractice={handleStartPractice}
+        />
+      )}
+
+      {status !== "draft" && currentVariant === "FINAL" && (
+        <FinalPrototype
+          status={status}
+          chunks={chunks}
+          activeChunkIndex={activeChunkIndex}
+          onSelectChunk={handleSelectChunk}
+          onPrevChunk={handlePrevChunk}
+          onNextChunk={handleNextChunk}
+          onCancelPreparing={handleCancelPreparing}
+          onExitPractice={handleExitPractice}
+          onPlayAudio={handlePlayAudio}
+          isAudioPlaying={isAudioPlaying}
         />
       )}
 
