@@ -18,7 +18,6 @@ import {
   PRESET_PARAGRAPHS,
   createChunksFromText,
 } from "./mock-data";
-import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
   X,
@@ -144,106 +143,117 @@ export function PrototypePracticeHost() {
   };
 
   return (
-    <div className="w-full flex flex-col items-center space-y-6">
-      {/* Prototype Control Bar: Quick Presets & Error Simulator */}
-      <div className="w-full max-w-2xl flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-muted/40 border text-xs">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="font-semibold text-muted-foreground mr-1 flex items-center gap-1">
-            <FileText className="h-3.5 w-3.5" />
-            Presets:
-          </span>
-          {PRESET_PARAGRAPHS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => handleLoadPreset(preset.text)}
-              className={`px-2.5 py-1 rounded-md transition-colors border ${
-                text === preset.text
-                  ? "bg-primary text-primary-foreground font-medium border-primary"
-                  : "bg-background hover:bg-muted text-muted-foreground border-border"
-              }`}
-            >
-              {preset.lengthTier.toUpperCase()}: {preset.title.slice(0, 18)}…
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Simulate Error Toggle */}
-          <button
-            type="button"
-            onClick={() => setSimulateError((prev) => !prev)}
-            aria-pressed={simulateError}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors border font-medium ${
-              simulateError
-                ? "bg-destructive/15 text-destructive border-destructive/40"
-                : "bg-background hover:bg-muted text-muted-foreground border-border"
-            }`}
-          >
-            <Bug className="h-3.5 w-3.5" />
-            <span>Simulate Error {simulateError ? "(ON)" : "(OFF)"}</span>
-          </button>
-
-          {/* State Inspector Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowStateInspector((prev) => !prev)}
-            aria-pressed={showStateInspector}
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground border bg-background"
-            title="Toggle session state inspector"
-          >
-            <Code2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Error Toast Notification (Per ticket #21: error toast + revert to draft) */}
-      {errorMessage && (
-        <div
-          role="alert"
-          data-testid="error-toast"
-          className="w-full max-w-2xl flex items-center justify-between gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive shadow-sm animate-in fade-in slide-in-from-top-2 duration-200"
-        >
-          <div className="flex items-center gap-2.5 text-sm">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <span className="font-medium">{errorMessage}</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setErrorMessage(null)}
-            aria-label="Dismiss error"
-            className="p-1 rounded-md hover:bg-destructive/10 text-destructive shrink-0"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {/* State Inspector Panel (Prototype Rule 5: Surface the state) */}
-      {showStateInspector && (
-        <div
-          data-testid="state-inspector"
-          className="w-full max-w-2xl p-3 rounded-xl bg-zinc-950 text-zinc-200 font-mono text-xs border border-zinc-800 space-y-1"
-        >
-          <div className="text-[10px] uppercase font-bold text-zinc-400">
-            Session State Model (Live)
-          </div>
-          <div>status: &quot;{status}&quot;</div>
-          <div>activeChunkIndex: {activeChunkIndex}</div>
-          <div>totalChunks: {chunks.length}</div>
-          <div>variant: &quot;{currentVariant}&quot;</div>
-          <div>simulateError: {simulateError ? "true" : "false"}</div>
-        </div>
-      )}
-
-      {/* Main Workspace / Practice View */}
+    <div className="w-full flex flex-col items-center">
       {status === "draft" && (
-        <PracticeWorkspace
-          value={text}
-          onChange={setText}
-          onStartPractice={handleStartPractice}
-        />
+        <div className="w-full max-w-2xl flex flex-col items-center gap-6 sm:gap-8 py-4 sm:py-8">
+          <div className="text-center max-w-2xl space-y-3">
+            <h1 className="text-3xl sm:text-5xl font-bold tracking-tight">
+              English Speaking Tutor
+            </h1>
+            <p className="text-muted-foreground text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
+              Welcome to your pronunciation practice workspace. Practice natural breath rhythm, Chunking, and Focus Words.
+            </p>
+          </div>
+
+          {/* Prototype Control Bar: Quick Presets & Error Simulator */}
+          <div className="w-full flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-muted/40 border text-xs">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-muted-foreground mr-1 flex items-center gap-1">
+                <FileText className="h-3.5 w-3.5" />
+                Presets:
+              </span>
+              {PRESET_PARAGRAPHS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => handleLoadPreset(preset.text)}
+                  className={`px-2.5 py-1 rounded-md transition-colors border ${
+                    text === preset.text
+                      ? "bg-primary text-primary-foreground font-medium border-primary"
+                      : "bg-background hover:bg-muted text-muted-foreground border-border"
+                  }`}
+                >
+                  {preset.lengthTier.toUpperCase()}: {preset.title.slice(0, 18)}…
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Simulate Error Toggle */}
+              <button
+                type="button"
+                onClick={() => setSimulateError((prev) => !prev)}
+                aria-pressed={simulateError}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors border font-medium ${
+                  simulateError
+                    ? "bg-destructive/15 text-destructive border-destructive/40"
+                    : "bg-background hover:bg-muted text-muted-foreground border-border"
+                }`}
+              >
+                <Bug className="h-3.5 w-3.5" />
+                <span>Simulate Error {simulateError ? "(ON)" : "(OFF)"}</span>
+              </button>
+
+              {/* State Inspector Toggle */}
+              <button
+                type="button"
+                onClick={() => setShowStateInspector((prev) => !prev)}
+                aria-pressed={showStateInspector}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground border bg-background"
+                title="Toggle session state inspector"
+              >
+                <Code2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Error Toast Notification (Per ticket #21: error toast + revert to draft) */}
+          {errorMessage && (
+            <div
+              role="alert"
+              data-testid="error-toast"
+              className="w-full flex items-center justify-between gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive shadow-sm animate-in fade-in slide-in-from-top-2 duration-200"
+            >
+              <div className="flex items-center gap-2.5 text-sm">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <span className="font-medium">{errorMessage}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                aria-label="Dismiss error"
+                className="p-1 rounded-md hover:bg-destructive/10 text-destructive shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* State Inspector Panel (Prototype Rule 5: Surface the state) */}
+          {showStateInspector && (
+            <div
+              data-testid="state-inspector"
+              className="w-full p-3 rounded-xl bg-zinc-950 text-zinc-200 font-mono text-xs border border-zinc-800 space-y-1"
+            >
+              <div className="text-[10px] uppercase font-bold text-zinc-400">
+                Session State Model (Live)
+              </div>
+              <div>status: &quot;{status}&quot;</div>
+              <div>activeChunkIndex: {activeChunkIndex}</div>
+              <div>totalChunks: {chunks.length}</div>
+              <div>variant: &quot;{currentVariant}&quot;</div>
+              <div>simulateError: {simulateError ? "true" : "false"}</div>
+            </div>
+          )}
+
+          {/* Main Workspace */}
+          <PracticeWorkspace
+            value={text}
+            onChange={setText}
+            onStartPractice={handleStartPractice}
+          />
+        </div>
       )}
 
       {status !== "draft" && currentVariant === "FINAL" && (

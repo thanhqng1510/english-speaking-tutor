@@ -9,7 +9,7 @@ import {
   ChevronUp,
   ChevronDown,
   X,
-  Sparkles,
+  Volume1,
 } from "lucide-react";
 
 export interface FinalPrototypeProps {
@@ -38,19 +38,33 @@ export function FinalPrototype({
   isAudioPlaying,
 }: FinalPrototypeProps) {
   const activeRef = useRef<HTMLDivElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Keep position stable without layout shifts or auto-scrolling
   const currentChunk = chunks[activeChunkIndex];
   const totalChunks = chunks.length;
   const activeFocusWord = currentChunk ? getChunkFocusWord(currentChunk) : "";
 
-  // Play audio for current chunk
+  // Keep a ref to the current chunk so keyboard shortcuts always play the freshest active chunk
+  const currentChunkRef = useRef(currentChunk);
+  useEffect(() => {
+    currentChunkRef.current = currentChunk;
+  }, [currentChunk]);
+
+  // Play audio for current full chunk
   const playCurrentChunk = useCallback(() => {
-    if (currentChunk && onPlayAudio) {
-      onPlayAudio(getChunkPlainText(currentChunk));
+    const target = currentChunkRef.current;
+    if (target && onPlayAudio) {
+      onPlayAudio(getChunkPlainText(target));
     }
-  }, [currentChunk, onPlayAudio]);
+  }, [onPlayAudio]);
+
+  // Play audio for only the Focus Word in isolation (Per Grilling Q2)
+  const playFocusWordOnly = useCallback(() => {
+    const target = currentChunkRef.current;
+    const focusWord = target ? getChunkFocusWord(target) : "";
+    if (focusWord && onPlayAudio) {
+      onPlayAudio(focusWord);
+    }
+  }, [onPlayAudio]);
 
   // Keyboard navigation for practice mode
   useEffect(() => {
@@ -68,9 +82,11 @@ export function FinalPrototype({
 
       if (e.key === "ArrowDown" || e.key === "j") {
         e.preventDefault();
+        (document.activeElement as HTMLElement)?.blur();
         onNextChunk();
       } else if (e.key === "ArrowUp" || e.key === "k") {
         e.preventDefault();
+        (document.activeElement as HTMLElement)?.blur();
         onPrevChunk();
       } else if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
@@ -82,15 +98,15 @@ export function FinalPrototype({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [status, onNextChunk, onPrevChunk, playCurrentChunk]);
 
-  // 1. Preparing State: dedicated filling progress bar with clean neutral colors
+  // 1. Preparing State: Pure, minimal centered view with progress bar (no gray card)
   if (status === "preparing") {
     return (
       <div
         data-testid="final-preparing"
-        className="w-full max-w-lg mx-auto py-12 px-6 sm:px-8 rounded-2xl bg-card border shadow-xs text-center space-y-6"
+        className="w-full max-w-md mx-auto py-24 px-4 text-center space-y-6"
       >
-        <div className="space-y-2">
-          <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-foreground">
+        <div className="space-y-1.5">
+          <h3 className="text-xl font-semibold tracking-tight text-foreground">
             Preparing your practice session…
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
@@ -98,8 +114,8 @@ export function FinalPrototype({
           </p>
         </div>
 
-        {/* Dedicated Filling Progress Bar (Neutral tokens, light & dark mode) */}
-        <div className="w-full space-y-2">
+        {/* Dedicated Filling Progress Bar (Clean neutral tokens) */}
+        <div className="w-full space-y-2 pt-2">
           <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all duration-1000 ease-out animate-pulse"
@@ -114,7 +130,7 @@ export function FinalPrototype({
             variant="ghost"
             size="sm"
             onClick={onCancelPreparing}
-            className="text-xs text-muted-foreground hover:text-foreground hover:bg-muted gap-1.5 h-8 px-4"
+            className="text-xs text-muted-foreground hover:text-foreground gap-1.5 h-8 px-4 rounded-full"
           >
             <X className="h-3.5 w-3.5" />
             Cancel preparation
@@ -124,17 +140,32 @@ export function FinalPrototype({
     );
   }
 
-  // 2. Practicing State: Immersive Canvas + Right Info Panel + Sleek Floating Bar
+  // 2. Practicing State: Pure, distraction-free immersive canvas
   return (
     <div
       data-testid="final-practice"
-      className="relative w-full max-w-5xl mx-auto space-y-4 pb-24"
+      className="relative w-full max-w-3xl mx-auto flex flex-col items-center pb-28 pt-2"
     >
-      {/* Immersive Top Bar: Minimalist Exit Practice Button */}
-      <div className="flex items-center justify-between px-2 py-1">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-          <span className="font-medium">Practice Mode</span>
+      {/* Immersive Top Bar: Visible helper guide on left, Exit button on right */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-2 py-1 px-3 border-b border-border/20 mb-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground/80 select-none font-medium">
+          <span>
+            Click chunk or press{" "}
+            <kbd className="px-1.5 py-0.5 rounded bg-muted border text-[11px] font-mono shadow-2xs">
+              Space
+            </kbd>{" "}
+            to listen
+          </span>
+          <span className="text-muted-foreground/40">•</span>
+          <span>
+            <kbd className="px-1.5 py-0.5 rounded bg-muted border text-[11px] font-mono shadow-2xs">
+              ↑
+            </kbd>{" "}
+            <kbd className="px-1.5 py-0.5 rounded bg-muted border text-[11px] font-mono shadow-2xs">
+              ↓
+            </kbd>{" "}
+            to change chunk
+          </span>
         </div>
 
         <Button
@@ -143,160 +174,97 @@ export function FinalPrototype({
           size="sm"
           onClick={onExitPractice}
           aria-label="Exit practice to draft"
-          className="text-xs text-muted-foreground hover:text-foreground hover:bg-muted gap-1.5 h-8 px-3 rounded-full transition-colors"
+          className="text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 gap-1.5 h-8 px-3 rounded-full transition-colors"
         >
           <X className="h-3.5 w-3.5" />
           Exit practice
         </Button>
       </div>
 
-      {/* Main 2-Column Immersive Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left / Center Canvas: Immersive Scrolling Lyrics */}
-        <div className="lg:col-span-8 flex flex-col items-center">
-          <div
-            ref={containerRef}
-            role="feed"
-            aria-label="Vertical karaoke lyrics practice canvas"
-            className="w-full relative min-h-[400px] max-h-[540px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-4 sm:px-6 py-12 space-y-3 rounded-2xl bg-card border shadow-xs"
-          >
-            {chunks.map((chunk, index) => {
-              const isActive = index === activeChunkIndex;
+      {/* Pure Canvas: Distraction-free lyrics stream directly on the page */}
+      <div
+        role="feed"
+        aria-label="Vertical karaoke lyrics practice canvas"
+        className="w-full flex flex-col items-center justify-center py-6 sm:py-12 space-y-4 sm:space-y-6"
+      >
+        {chunks.map((chunk, index) => {
+          const isActive = index === activeChunkIndex;
 
-              return (
-                <div
-                  key={index}
-                  ref={isActive ? activeRef : null}
-                  onClick={() => {
-                    if (isActive) {
-                      playCurrentChunk();
-                    } else {
-                      onSelectChunk(index);
-                      if (onPlayAudio) {
-                        onPlayAudio(getChunkPlainText(chunk));
-                      }
+          return (
+            <div
+              key={index}
+              ref={isActive ? activeRef : null}
+              onClick={(e) => {
+                (e.currentTarget as HTMLElement).blur();
+                if (isActive) {
+                  playCurrentChunk();
+                } else {
+                  onSelectChunk(index);
+                  if (onPlayAudio) {
+                    onPlayAudio(getChunkPlainText(chunk));
+                  }
+                }
+              }}
+              role="button"
+              tabIndex={isActive ? 0 : -1}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  playCurrentChunk();
+                }
+              }}
+              aria-current={isActive ? "true" : undefined}
+              aria-label={`Chunk ${index + 1}: ${getChunkPlainText(chunk)}`}
+              className={`group relative cursor-pointer text-center px-4 py-1.5 select-none transition-opacity duration-300 ease-out text-xl sm:text-2xl font-medium leading-relaxed ${
+                isActive
+                  ? "opacity-100 text-foreground"
+                  : "opacity-30 hover:opacity-60 text-muted-foreground"
+              }`}
+            >
+              {chunk.parts.map((part, partIdx) => {
+                const isFocus = part.role === "focus_word";
+                return (
+                  <span
+                    key={partIdx}
+                    data-testid={isFocus && isActive ? "focus-word-accent" : undefined}
+                    className={
+                      isFocus
+                        ? `inline rounded-md px-1.5 py-0.5 transition-colors duration-300 ease-out ${
+                            isActive
+                              ? "bg-primary/15 dark:bg-primary/25 text-foreground shadow-2xs"
+                              : "bg-transparent text-inherit"
+                          }`
+                        : "transition-colors duration-300 ease-out"
                     }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      if (isActive) {
-                        playCurrentChunk();
-                      } else {
-                        onSelectChunk(index);
-                        if (onPlayAudio) {
-                          onPlayAudio(getChunkPlainText(chunk));
-                        }
-                      }
-                    }
-                  }}
-                  aria-current={isActive ? "true" : undefined}
-                  aria-label={`Chunk ${index + 1}: ${getChunkPlainText(chunk)}`}
-                  className={`group relative cursor-pointer text-center rounded-xl px-4 py-3 select-none transition-colors duration-150 text-xl sm:text-2xl leading-relaxed ${
-                    isActive
-                      ? "opacity-100 font-semibold text-foreground bg-muted/50 shadow-xs"
-                      : "opacity-35 hover:opacity-65 text-muted-foreground font-normal bg-transparent"
-                  }`}
-                >
-                  {chunk.parts.map((part, partIdx) => {
-                    const isFocus = part.role === "focus_word";
-                    if (isFocus && isActive) {
-                      return (
-                        <span
-                          key={partIdx}
-                          data-testid="focus-word-accent"
-                          className="inline-block mx-1 px-2.5 py-0.5 rounded-lg bg-primary/10 dark:bg-primary/20 text-foreground dark:text-foreground font-bold border border-primary/25 shadow-2xs"
-                        >
-                          {part.text}
-                        </span>
-                      );
-                    }
-                    return <span key={partIdx}>{part.text}</span>;
-                  })}
-
-                  {/* Inline Audio Feedback Indicator (replaces dedicated button) */}
-                  {isActive && (
-                    <span
-                      className="inline-flex items-center ml-2.5 align-middle text-muted-foreground group-hover:text-foreground transition-colors"
-                      title="Click chunk or press Space to listen"
-                    >
-                      {isAudioPlaying ? (
-                        <Volume2 className="h-5 w-5 animate-bounce text-primary" />
-                      ) : (
-                        <Volume2 className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
-                      )}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Micro hint below canvas */}
-          <div className="pt-2 text-[11px] text-muted-foreground/60 select-none">
-            Click any line to speak • Space to replay • ↑ / ↓ to step
-          </div>
-        </div>
-
-        {/* Right-Hand Info Panel: Focus Word & Cadence Analysis (Extensible for future prosody) */}
-        <div className="lg:col-span-4 sticky top-6 space-y-4">
-          <div className="rounded-2xl bg-card border shadow-xs p-5 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b text-xs">
-              <span className="font-mono uppercase tracking-wider font-semibold text-muted-foreground text-[11px]">
-                Chunk Focus
-              </span>
-              <span className="font-mono text-muted-foreground">
-                {activeChunkIndex + 1} / {totalChunks}
-              </span>
+                  >
+                    {part.text}
+                  </span>
+                );
+              })}
             </div>
-
-            {/* Focus Word Breakdown */}
-            <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">Key Pitch Stress:</div>
-              <div className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                &ldquo;{activeFocusWord}&rdquo;
-                <Sparkles className="h-4 w-4 text-primary opacity-70" />
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                Deliver this word with the primary pitch peak of the phrase. Extend the vowel length and pause briefly after this breath unit.
-              </p>
-            </div>
-
-            {/* Cadence Metrics & Future Extension Slot */}
-            <div className="rounded-xl bg-muted/40 p-3 space-y-2 border text-xs">
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span>Phrase Rhythm:</span>
-                <span className="font-medium text-foreground">
-                  {currentChunk?.parts.map((p) => p.text).join("").trim().split(/\s+/).length} words
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span>Breath Boundary:</span>
-                <span className="font-medium text-foreground">Natural pause</span>
-              </div>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
-      {/* 3. Sleek Floating Bottom Bar: Useful function without cluttering canvas */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-2 rounded-full bg-background/90 dark:bg-zinc-900/95 border shadow-xl backdrop-blur-md text-xs select-none">
+      {/* Sleek Floating Bottom Bar: Actionable controls without canvas clutter */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-2 rounded-full bg-background/90 dark:bg-zinc-900/95 border shadow-xl backdrop-blur-md text-xs select-none">
         {/* Progress counter */}
-        <div className="flex items-center gap-1.5 font-mono font-medium px-1">
+        <div className="flex items-center gap-1 font-mono font-medium px-1">
           <span className="text-foreground font-bold">{activeChunkIndex + 1}</span>
-          <span className="text-muted-foreground/60">/</span>
+          <span className="text-muted-foreground/50">/</span>
           <span className="text-muted-foreground">{totalChunks}</span>
         </div>
 
         <div className="h-3.5 w-px bg-border" />
 
         {/* Stepper Navigation */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
             type="button"
-            onClick={onPrevChunk}
+            onClick={(e) => {
+              (e.currentTarget as HTMLElement).blur();
+              onPrevChunk();
+            }}
             disabled={activeChunkIndex === 0}
             aria-label="Previous Chunk"
             className="p-1 rounded-full text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none hover:bg-muted transition-colors"
@@ -305,7 +273,10 @@ export function FinalPrototype({
           </button>
           <button
             type="button"
-            onClick={onNextChunk}
+            onClick={(e) => {
+              (e.currentTarget as HTMLElement).blur();
+              onNextChunk();
+            }}
             disabled={activeChunkIndex === totalChunks - 1}
             aria-label="Next Chunk"
             className="p-1 rounded-full text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none hover:bg-muted transition-colors"
@@ -316,12 +287,15 @@ export function FinalPrototype({
 
         <div className="h-3.5 w-px bg-border" />
 
-        {/* Audio Replay Button */}
+        {/* Listen Full Chunk Button */}
         <button
           type="button"
-          onClick={playCurrentChunk}
+          onClick={(e) => {
+            (e.currentTarget as HTMLElement).blur();
+            playCurrentChunk();
+          }}
           aria-label="Listen to active chunk"
-          className="flex items-center gap-1 px-2 py-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
         >
           {isAudioPlaying ? (
             <Volume2 className="h-3.5 w-3.5 text-primary animate-pulse" />
@@ -331,9 +305,25 @@ export function FinalPrototype({
           <span>Listen</span>
         </button>
 
-        <span className="text-[10px] text-muted-foreground/60 hidden sm:inline font-mono pl-1">
-          (Space: play)
-        </span>
+        {/* Hear Focus Word Only Button (Per Grilling Q2) */}
+        {activeFocusWord && (
+          <>
+            <div className="h-3.5 w-px bg-border" />
+            <button
+              type="button"
+              onClick={(e) => {
+                (e.currentTarget as HTMLElement).blur();
+                playFocusWordOnly();
+              }}
+              aria-label="Hear focus word in isolation"
+              title={`Hear "${activeFocusWord}" spoken in isolation`}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 dark:bg-primary/20 text-foreground hover:bg-primary/20 transition-colors font-medium text-[11px]"
+            >
+              <Volume1 className="h-3.5 w-3.5 text-primary" />
+              <span>Focus: <strong>{activeFocusWord}</strong></span>
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

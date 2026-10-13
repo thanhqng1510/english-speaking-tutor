@@ -234,9 +234,11 @@ describe("FinalPrototype (Unified Synthesized Design)", () => {
     expect(screen.getByTestId("final-practice")).toBeInTheDocument();
     expect(screen.getByTestId("focus-word-accent")).toBeInTheDocument();
 
-    // Right-hand side panel
-    expect(screen.getByText(/chunk focus/i)).toBeInTheDocument();
-    expect(screen.getByText(/key pitch stress:/i)).toBeInTheDocument();
+    // Isolated Focus Word audio trigger in bottom floating bar (per Q2)
+    const focusWordBtn = screen.getByRole("button", { name: /hear focus word in isolation/i });
+    expect(focusWordBtn).toBeInTheDocument();
+    fireEvent.click(focusWordBtn);
+    expect(handlePlayAudio).toHaveBeenCalledWith(expect.any(String));
 
     // Bottom floating bar counter
     expect(screen.getByText("1")).toBeInTheDocument();
@@ -250,12 +252,57 @@ describe("FinalPrototype (Unified Synthesized Design)", () => {
     // Audio replay button in bottom bar
     const listenBtn = screen.getByRole("button", { name: /listen to active chunk/i });
     fireEvent.click(listenBtn);
-    expect(handlePlayAudio).toHaveBeenCalledTimes(1);
+    expect(handlePlayAudio).toHaveBeenCalledTimes(2);
+
+    // Top bar helper guide
+    expect(screen.getByText(/click chunk or press/i)).toBeInTheDocument();
 
     // Next chunk in bottom bar
     const nextBtn = screen.getByRole("button", { name: /next chunk/i });
     fireEvent.click(nextBtn);
     expect(handleNext).toHaveBeenCalledTimes(1);
+  });
+
+  it("plays current chunk audio on Space key press without playing stale chunk", () => {
+    const handleNext = vi.fn();
+    const handlePlayAudio = vi.fn();
+
+    const { rerender } = render(
+      <FinalPrototype
+        status="practicing"
+        chunks={sampleChunks}
+        activeChunkIndex={0}
+        onSelectChunk={vi.fn()}
+        onPrevChunk={vi.fn()}
+        onNextChunk={handleNext}
+        onCancelPreparing={vi.fn()}
+        onExitPractice={vi.fn()}
+        onPlayAudio={handlePlayAudio}
+      />
+    );
+
+    // Press Space on initial chunk 0
+    fireEvent.keyDown(window, { key: " " });
+    expect(handlePlayAudio).toHaveBeenCalledWith(getChunkPlainText(sampleChunks[0]));
+
+    // Advance to chunk 1
+    rerender(
+      <FinalPrototype
+        status="practicing"
+        chunks={sampleChunks}
+        activeChunkIndex={1}
+        onSelectChunk={vi.fn()}
+        onPrevChunk={vi.fn()}
+        onNextChunk={handleNext}
+        onCancelPreparing={vi.fn()}
+        onExitPractice={vi.fn()}
+        onPlayAudio={handlePlayAudio}
+      />
+    );
+
+    // Press Space again: must play Chunk 1, not the old Chunk 0
+    fireEvent.keyDown(window, { key: " " });
+    expect(handlePlayAudio).toHaveBeenLastCalledWith(getChunkPlainText(sampleChunks[1]));
   });
 });
 
