@@ -96,12 +96,12 @@ export function generateMarkdownReport(data: BenchmarkRunReportData): string {
   for (const c of data.candidates) {
     const proj = data.costProjections[c.candidateId];
     if (proj) {
-      const v100 = proj.volumes.find((v) => v.activeLearners === 100)?.monthlyCostUsd ?? 0;
-      const v500 = proj.volumes.find((v) => v.activeLearners === 500)?.monthlyCostUsd ?? 0;
-      const v1000 = proj.volumes.find((v) => v.activeLearners === 1000)?.monthlyCostUsd ?? 0;
-      const v5000 = proj.volumes.find((v) => v.activeLearners === 5000)?.monthlyCostUsd ?? 0;
+      const cost100Learners = proj.volumes.find((v) => v.activeLearners === 100)?.monthlyCostUsd ?? 0;
+      const cost500Learners = proj.volumes.find((v) => v.activeLearners === 500)?.monthlyCostUsd ?? 0;
+      const cost1000Learners = proj.volumes.find((v) => v.activeLearners === 1000)?.monthlyCostUsd ?? 0;
+      const cost5000Learners = proj.volumes.find((v) => v.activeLearners === 5000)?.monthlyCostUsd ?? 0;
       lines.push(
-        `| **${c.candidateName}** | $${v100.toFixed(2)} | $${v500.toFixed(2)} | $${v1000.toFixed(2)} | $${v5000.toFixed(2)} |`
+        `| **${c.candidateName}** | $${cost100Learners.toFixed(2)} | $${cost500Learners.toFixed(2)} | $${cost1000Learners.toFixed(2)} | $${cost5000Learners.toFixed(2)} |`
       );
     }
   }
@@ -144,6 +144,29 @@ export function generateMarkdownReport(data: BenchmarkRunReportData): string {
   }
   lines.push(``);
 
+  // Chunk length bounds inspection
+  const lengthOutliers = data.results.filter((r) => r.validation.chunkLengthIssues.length > 0);
+  lines.push(`### Chunk Length Bounds Inspection`);
+  lines.push(``);
+  if (lengthOutliers.length === 0) {
+    lines.push(`✅ All generated Chunks across all candidates fell within the 3–10 word target range.`);
+  } else {
+    const extremeOutliers = data.results.filter((r) => !r.validation.chunkLengthBoundsValid);
+    if (extremeOutliers.length > 0) {
+      lines.push(`⚠️ **Extreme Outliers (< 1 or > 15 words):** ${extremeOutliers.length} invocation(s) flagged.`);
+    } else {
+      lines.push(`Target range is 3–10 words (sweet spot 4–8 words). Outliers noted for human review:`);
+    }
+    lines.push(``);
+    for (const item of lengthOutliers) {
+      lines.push(`- **Model:** \`${item.candidateId}\` | **Paragraph:** \`${item.paragraphId}\``);
+      for (const issue of item.validation.chunkLengthIssues) {
+        lines.push(`  - Chunk ${issue.chunkIndex + 1} (${issue.wordCount} words, ${issue.issue}): "${issue.text}"`);
+      }
+    }
+  }
+  lines.push(``);
+
   // 5. Side-by-Side Chunk Inspections
   lines.push(`## 5. Side-by-Side Chunk Inspections`);
   lines.push(``);
@@ -152,8 +175,8 @@ export function generateMarkdownReport(data: BenchmarkRunReportData): string {
   );
   lines.push(``);
 
-  // Group by distinct paragraphs (sample up to 4 paragraphs)
-  const sampleParagraphIds = Array.from(new Set(data.results.map((r) => r.paragraphId))).slice(0, 4);
+  // Group by distinct paragraphs
+  const sampleParagraphIds = Array.from(new Set(data.results.map((r) => r.paragraphId)));
 
   for (const pid of sampleParagraphIds) {
     const pResults = data.results.filter((r) => r.paragraphId === pid);
@@ -166,7 +189,7 @@ export function generateMarkdownReport(data: BenchmarkRunReportData): string {
       if (r.parsed && r.parsed.chunks.length > 0) {
         lines.push(`- **Chunks (${r.parsed.chunks.length}):**`);
         r.parsed.chunks.forEach((chunk, idx) => {
-          lines.push(`  ${idx + 1}. \`${formatChunkWithFocusWord(chunk).trim()}\``);
+          lines.push(`  ${idx + 1}. ${formatChunkWithFocusWord(chunk).trim()}`);
         });
       } else {
         lines.push(`- *Failed to produce valid chunks.*`);

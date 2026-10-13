@@ -41,7 +41,7 @@ export const CHUNKING_JSON_SCHEMA = {
   },
 } as const;
 
-export const CHUNKING_SYSTEM_PROMPT = `You are an expert English speech and prosody coach helping learners speak naturally.
+export const CHUNKING_SYSTEM_PROMPT = `You are an expert English speech and rhythm coach helping learners speak naturally.
 Your task is to divide the learner's spoken text into an ordered sequence of spoken Chunks and identify the single Focus Word in each Chunk.
 
 Rules:

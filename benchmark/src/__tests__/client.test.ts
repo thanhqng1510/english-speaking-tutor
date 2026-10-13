@@ -39,10 +39,29 @@ describe("benchmark client & candidates", () => {
     expect(CANDIDATE_MODELS["gpt-6-sol"].rates.outputPer1M).toBe(10.0);
   });
 
-  it("resolves endpoint with custom env var or fallback", () => {
-    const endpoint = resolveEndpoint("gpt-6-luna");
-    expect(endpoint).toBeDefined();
-    expect(typeof endpoint).toBe("string");
+  it("throws a clear configuration error when no endpoint env var is set", () => {
+    const origOpenAi = process.env.AZURE_OPENAI_ENDPOINT;
+    const origFoundry = process.env.AZURE_AI_FOUNDRY_ENDPOINT;
+    delete process.env.AZURE_OPENAI_ENDPOINT;
+    delete process.env.AZURE_AI_FOUNDRY_ENDPOINT;
+    try {
+      expect(() => resolveEndpoint("gpt-6-luna")).toThrow(
+        /No Azure endpoint configured for model "gpt-6-luna"/
+      );
+    } finally {
+      if (origOpenAi) process.env.AZURE_OPENAI_ENDPOINT = origOpenAi;
+      if (origFoundry) process.env.AZURE_AI_FOUNDRY_ENDPOINT = origFoundry;
+    }
+  });
+
+  it("resolves endpoint when environment variable is provided", () => {
+    process.env.AZURE_OPENAI_ENDPOINT = "https://custom.openai.azure.com";
+    try {
+      const endpoint = resolveEndpoint("gpt-6-luna");
+      expect(endpoint).toBe("https://custom.openai.azure.com");
+    } finally {
+      delete process.env.AZURE_OPENAI_ENDPOINT;
+    }
   });
 
   it("generates valid mock chunking that passes all 4 automated checks", () => {

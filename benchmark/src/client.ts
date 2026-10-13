@@ -19,7 +19,6 @@ import { validateChunkingOutput } from "./validator";
 
 export interface ModelClientOptions {
   readonly dryRun?: boolean;
-  readonly mockFailures?: boolean;
   readonly timeoutMs?: number;
 }
 
@@ -48,8 +47,9 @@ export function resolveEndpoint(candidateId: CandidateModelId): string {
   const openAiEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
   if (openAiEndpoint) return openAiEndpoint;
 
-  // Default fallback endpoint referencing the project's westus3 resource
-  return `https://thanhqng1510-4094-resource.cognitiveservices.azure.com/models/chat/completions?api-version=2024-05-01-preview`;
+  throw new Error(
+    `No Azure endpoint configured for model "${candidateId}". Please set ${config.defaultEndpointEnvVar}, AZURE_AI_FOUNDRY_ENDPOINT, or AZURE_OPENAI_ENDPOINT.`
+  );
 }
 
 /**
@@ -178,9 +178,17 @@ export async function invokeCandidateModel(
     };
 
     const rawContent = data.choices?.[0]?.message?.content || "";
-    const promptTokens = data.usage?.prompt_tokens ?? Math.round(paragraph.characterCount / 3.5);
-    const completionTokens = data.usage?.completion_tokens ?? Math.round(paragraph.characterCount / 3.2);
-    const cachedTokens = data.usage?.prompt_tokens_details?.cached_tokens ?? 0;
+    if (
+      typeof data.usage?.prompt_tokens !== "number" ||
+      typeof data.usage?.completion_tokens !== "number"
+    ) {
+      throw new Error(
+        "Azure API response is missing token usage telemetry (data.usage.prompt_tokens / data.usage.completion_tokens)"
+      );
+    }
+    const promptTokens = data.usage.prompt_tokens;
+    const completionTokens = data.usage.completion_tokens;
+    const cachedTokens = data.usage.prompt_tokens_details?.cached_tokens ?? 0;
 
     const tokens: TokenUsage = { promptTokens, completionTokens, cachedTokens };
     const costUsd = calculateCallCost(config.rates, tokens);
@@ -227,6 +235,7 @@ export async function invokeCandidateModel(
         schemaValid: false,
         focusWordValid: false,
         textIntegrityValid: false,
+        chunkLengthBoundsValid: false,
         chunkLengthIssues: [],
         errors: [`Model invocation failed: ${errorMessage}`],
       },

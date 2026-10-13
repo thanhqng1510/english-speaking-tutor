@@ -85,8 +85,8 @@ describe("benchmark validator", () => {
       const chunks: Chunk[] = [
         {
           parts: [
-            { text: "Although ", role: "normal" },
-            { text: "the weather", role: "focus_word" },
+            { text: "Although the ", role: "normal" },
+            { text: "weather", role: "focus_word" },
           ],
         },
         {
@@ -99,6 +99,20 @@ describe("benchmark validator", () => {
       const check = validateFocusWords(chunks);
       expect(check.valid).toBe(true);
       expect(check.errors).toHaveLength(0);
+    });
+
+    it("fails when a Focus Word part contains multiple words", () => {
+      const chunks: Chunk[] = [
+        {
+          parts: [
+            { text: "Although ", role: "normal" },
+            { text: "the weather", role: "focus_word" },
+          ],
+        },
+      ];
+      const check = validateFocusWords(chunks);
+      expect(check.valid).toBe(false);
+      expect(check.errors[0]).toContain("contains 2 words");
     });
 
     it("fails when a chunk has 0 Focus Words", () => {

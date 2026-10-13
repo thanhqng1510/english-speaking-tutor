@@ -57,6 +57,7 @@ describe("benchmark reporter", () => {
         schemaValid: true,
         focusWordValid: true,
         textIntegrityValid: true,
+        chunkLengthBoundsValid: true,
         chunkLengthIssues: [],
         errors: [],
       },

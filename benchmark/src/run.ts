@@ -6,6 +6,7 @@ import { aggregateCandidateMetrics, calculateLearnerCostProjections } from "./me
 import { saveBenchmarkArtifacts } from "./reporter";
 import type {
   BenchmarkRunReportData,
+  CandidateAggregateMetrics,
   CandidateCostProjection,
   CandidateModelId,
   ModelInvocationResult,
@@ -139,17 +140,14 @@ export async function runBenchmark(config: BenchmarkRunnerConfig): Promise<Bench
     console.log(`  Candidate summary: ${candidatePasses}/${paragraphs.length} passed (${passRate}%)`);
   }
 
-  // Aggregate metrics
-  const candidateMetrics = config.candidateIds.map((cId) => {
-    const modelConfig = getCandidateConfig(cId);
-    const candidateResults = allResults.filter((r) => r.candidateId === cId);
-    return aggregateCandidateMetrics(modelConfig, candidateResults);
-  });
-
+  // Aggregate metrics and cost projections
+  const candidateMetrics: CandidateAggregateMetrics[] = [];
   const costProjections = {} as Record<CandidateModelId, CandidateCostProjection>;
+
   for (const cId of config.candidateIds) {
     const modelConfig = getCandidateConfig(cId);
     const candidateResults = allResults.filter((r) => r.candidateId === cId);
+    candidateMetrics.push(aggregateCandidateMetrics(modelConfig, candidateResults));
     costProjections[cId] = calculateLearnerCostProjections(modelConfig, candidateResults);
   }
 

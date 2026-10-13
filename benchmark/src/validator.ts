@@ -13,10 +13,9 @@ import type {
 export function extractWords(text: string): string[] {
   return text
     .replace(/[—–]/g, " ")
-    .replace(/[^a-zA-Z0-9'\s]/g, " ")
     .trim()
     .split(/\s+/)
-    .map((token) => token.replace(/^'+|'+$/g, "").toLowerCase())
+    .map((token) => token.replace(/^[^\w$]+|[^\w%]+$/g, "").toLowerCase())
     .filter((word) => word.length > 0);
 }
 
@@ -132,6 +131,13 @@ export function validateFocusWords(chunks: readonly Chunk[]): {
       errors.push(
         `Chunk ${index + 1} has ${focusWords.length} Focus Words (${words}). Expected exactly 1.`
       );
+    } else {
+      const fwWords = focusWords[0].text.trim().split(/\s+/).filter((w) => w.length > 0);
+      if (fwWords.length !== 1) {
+        errors.push(
+          `Chunk ${index + 1} Focus Word "${focusWords[0].text.trim()}" contains ${fwWords.length} words. A Focus Word must be exactly one single word.`
+        );
+      }
     }
   });
 
@@ -253,6 +259,7 @@ export function validateChunkingOutput(
         schemaValid: false,
         focusWordValid: false,
         textIntegrityValid: false,
+        chunkLengthBoundsValid: false,
         chunkLengthIssues: [],
         errors: [parseError],
       };
@@ -267,6 +274,7 @@ export function validateChunkingOutput(
       schemaValid: false,
       focusWordValid: false,
       textIntegrityValid: false,
+      chunkLengthBoundsValid: false,
       chunkLengthIssues: [],
       errors: allErrors,
     };
@@ -285,6 +293,9 @@ export function validateChunkingOutput(
   }
 
   const chunkLengthIssues = inspectChunkLengths(chunks);
+  const chunkLengthBoundsValid = chunkLengthIssues.filter(
+    (i) => i.issue === "extreme_short" || i.issue === "extreme_long"
+  ).length === 0;
 
   // Hard reliability checks: schema, focus word, text integrity
   const isValid = schemaCheck.valid && focusWordCheck.valid && textIntegrityCheck.valid;
@@ -294,6 +305,7 @@ export function validateChunkingOutput(
     schemaValid: schemaCheck.valid,
     focusWordValid: focusWordCheck.valid,
     textIntegrityValid: textIntegrityCheck.valid,
+    chunkLengthBoundsValid,
     chunkLengthIssues,
     errors: allErrors,
   };

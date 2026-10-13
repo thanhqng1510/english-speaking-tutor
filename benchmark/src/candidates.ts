@@ -12,7 +12,6 @@ export const CANDIDATE_MODELS: Record<CandidateModelId, CandidateModelConfig> = 
       outputPer1M: 0.3,
       cachedInputPer1M: 0.075,
     },
-    supportsStrictSchema: true,
     defaultTimeoutMs: 15000,
   },
   "gpt-6-luna": {
@@ -26,7 +25,6 @@ export const CANDIDATE_MODELS: Record<CandidateModelId, CandidateModelConfig> = 
       outputPer1M: 0.5,
       cachedInputPer1M: 0.01,
     },
-    supportsStrictSchema: true,
     defaultTimeoutMs: 15000,
   },
   "claude-haiku-5-5": {
@@ -40,7 +38,6 @@ export const CANDIDATE_MODELS: Record<CandidateModelId, CandidateModelConfig> = 
       outputPer1M: 0.5,
       cachedInputPer1M: 0.01,
     },
-    supportsStrictSchema: true,
     defaultTimeoutMs: 15000,
   },
   "deepseek-v4-1-flash": {
@@ -54,7 +51,6 @@ export const CANDIDATE_MODELS: Record<CandidateModelId, CandidateModelConfig> = 
       outputPer1M: 0.6,
       cachedInputPer1M: 0.028,
     },
-    supportsStrictSchema: true,
     defaultTimeoutMs: 15000,
   },
   "gpt-5-4-nano": {
@@ -68,7 +64,6 @@ export const CANDIDATE_MODELS: Record<CandidateModelId, CandidateModelConfig> = 
       outputPer1M: 1.25,
       cachedInputPer1M: 0.02,
     },
-    supportsStrictSchema: true,
     defaultTimeoutMs: 15000,
   },
   "gpt-6-sol": {
@@ -82,7 +77,6 @@ export const CANDIDATE_MODELS: Record<CandidateModelId, CandidateModelConfig> = 
       outputPer1M: 10.0,
       cachedInputPer1M: 0.2,
     },
-    supportsStrictSchema: true,
     defaultTimeoutMs: 25000,
   },
 };

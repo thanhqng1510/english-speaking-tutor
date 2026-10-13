@@ -44,7 +44,6 @@ export interface CandidateModelConfig {
   readonly deploymentType: DeploymentProvider;
   readonly defaultEndpointEnvVar: string;
   readonly rates: RateCard;
-  readonly supportsStrictSchema: boolean;
   readonly defaultTimeoutMs: number;
 }
 
@@ -60,6 +59,7 @@ export interface ValidationResult {
   readonly schemaValid: boolean;
   readonly focusWordValid: boolean;
   readonly textIntegrityValid: boolean;
+  readonly chunkLengthBoundsValid: boolean;
   readonly chunkLengthIssues: readonly ChunkLengthIssue[];
   readonly errors: readonly string[];
 }
