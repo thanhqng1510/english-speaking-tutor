@@ -95,14 +95,6 @@ export interface LatencyStats {
   readonly mean: number;
 }
 
-export interface ServerLatencyStats {
-  readonly p50: number | null;
-  readonly p95: number | null;
-  readonly min: number | null;
-  readonly max: number | null;
-  readonly mean: number | null;
-}
-
 export interface TokenStats {
   readonly avgPromptTokens: number;
   readonly avgCompletionTokens: number;
@@ -121,7 +113,7 @@ export interface CandidateAggregateMetrics {
   readonly passedRuns: number;
   readonly passRatePercent: number;
   readonly latencyMs: LatencyStats;
-  readonly serverLatencyMs: ServerLatencyStats;
+  readonly serverLatencyMs: LatencyStats | null;
   readonly tokenStats: TokenStats;
   readonly totalCostUsd: number;
   readonly costPer1kRunsUsd: number;

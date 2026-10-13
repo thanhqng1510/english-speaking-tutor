@@ -8,7 +8,6 @@ import type {
   LengthTier,
   ModelInvocationResult,
   RateCard,
-  ServerLatencyStats,
   TokenStats,
   TokenUsage,
 } from "./types";
@@ -39,14 +38,18 @@ export function calculatePercentile(sortedValues: number[], percentile: number):
 }
 
 /**
- * Computes standard latency statistics (min, max, mean, p50, p95).
+ * Computes standard latency statistics (min, max, mean, p50, p95) from numeric values,
+ * ignoring null or invalid values. Returns null if no valid numeric values exist.
  */
-export function computeLatencyStats(values: number[]): LatencyStats {
-  if (values.length === 0) {
-    return { min: 0, max: 0, mean: 0, p50: 0, p95: 0 };
+export function computeLatencyStats(
+  values: readonly (number | null | undefined)[]
+): LatencyStats | null {
+  const valid = values.filter((v): v is number => typeof v === "number" && !isNaN(v));
+  if (valid.length === 0) {
+    return null;
   }
 
-  const sorted = [...values].sort((a, b) => a - b);
+  const sorted = [...valid].sort((a, b) => a - b);
   const sum = sorted.reduce((acc, val) => acc + val, 0);
   const mean = Math.round((sum / sorted.length) * 10) / 10;
   const min = sorted[0];
@@ -55,25 +58,6 @@ export function computeLatencyStats(values: number[]): LatencyStats {
   const p95 = Math.round(calculatePercentile(sorted, 95));
 
   return { min, max, mean, p50, p95 };
-}
-
-/**
- * Computes optional server-side latency statistics.
- */
-export function computeServerLatencyStats(values: (number | null)[]): ServerLatencyStats {
-  const validNumbers = values.filter((v): v is number => v !== null && !isNaN(v));
-  if (validNumbers.length === 0) {
-    return { min: null, max: null, mean: null, p50: null, p95: null };
-  }
-
-  const stats = computeLatencyStats(validNumbers);
-  return {
-    min: stats.min,
-    max: stats.max,
-    mean: stats.mean,
-    p50: stats.p50,
-    p95: stats.p95,
-  };
 }
 
 /**
@@ -127,8 +111,9 @@ export function aggregateCandidateMetrics(
   const latencies = results.map((r) => r.roundTripMs);
   const serverLatencies = results.map((r) => r.serverProcessingMs);
 
-  const latencyMs = computeLatencyStats(latencies);
-  const serverLatencyMs = computeServerLatencyStats(serverLatencies);
+  const latencyMs =
+    computeLatencyStats(latencies) ?? { min: 0, max: 0, mean: 0, p50: 0, p95: 0 };
+  const serverLatencyMs = computeLatencyStats(serverLatencies);
   const tokenStats = computeTokenStats(results);
 
   const totalCostUsd = results.reduce((acc, r) => acc + r.costUsd, 0);

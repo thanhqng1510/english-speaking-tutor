@@ -6,7 +6,6 @@ import {
   calculateLearnerCostProjections,
   calculatePercentile,
   computeLatencyStats,
-  computeServerLatencyStats,
 } from "../metrics";
 import type { ModelInvocationResult } from "../types";
 
@@ -69,26 +68,27 @@ describe("benchmark metrics and cost calculations", () => {
       const values = [100, 120, 130, 140, 200];
       const stats = computeLatencyStats(values);
 
-      expect(stats.min).toBe(100);
-      expect(stats.max).toBe(200);
-      expect(stats.p50).toBe(130);
-      expect(stats.mean).toBe(138);
+      expect(stats).not.toBeNull();
+      expect(stats?.min).toBe(100);
+      expect(stats?.max).toBe(200);
+      expect(stats?.p50).toBe(130);
+      expect(stats?.mean).toBe(138);
     });
 
-    it("handles nulls in server latency stats", () => {
+    it("handles nulls and missing values when computing latency stats", () => {
       const values = [null, 100, null, 120, 140];
-      const stats = computeServerLatencyStats(values);
+      const stats = computeLatencyStats(values);
 
-      expect(stats.p50).toBe(120);
-      expect(stats.mean).toBe(120);
-      expect(stats.min).toBe(100);
-      expect(stats.max).toBe(140);
+      expect(stats).not.toBeNull();
+      expect(stats?.p50).toBe(120);
+      expect(stats?.mean).toBe(120);
+      expect(stats?.min).toBe(100);
+      expect(stats?.max).toBe(140);
     });
 
-    it("returns nulls when no server timings exist", () => {
-      const stats = computeServerLatencyStats([null, null]);
-      expect(stats.p50).toBeNull();
-      expect(stats.mean).toBeNull();
+    it("returns null when no valid timings exist", () => {
+      const stats = computeLatencyStats([null, null]);
+      expect(stats).toBeNull();
     });
   });
 
@@ -152,7 +152,7 @@ describe("benchmark metrics and cost calculations", () => {
       expect(metrics.passedRuns).toBe(1);
       expect(metrics.passRatePercent).toBe(50);
       expect(metrics.latencyMs.p50).toBe(180);
-      expect(metrics.serverLatencyMs.p50).toBe(120);
+      expect(metrics.serverLatencyMs?.p50).toBe(120);
       expect(metrics.costPer1kRunsUsd).toBeCloseTo(0.0625, 3);
     });
   });

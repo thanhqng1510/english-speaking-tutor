@@ -51,7 +51,7 @@ export function renderExecutiveSummarySection(candidates: readonly CandidateAggr
   ];
 
   for (const c of candidates) {
-    const serverP50 = c.serverLatencyMs.p50 !== null ? `${c.serverLatencyMs.p50} ms` : "N/A";
+    const serverP50 = c.serverLatencyMs ? `${c.serverLatencyMs.p50} ms` : "N/A";
     lines.push(
       `| **${c.candidateName}** | ${c.provider} | ${c.deploymentType} | **${c.passRatePercent}%** (${c.passedRuns}/${c.totalRuns}) | ${c.latencyMs.p50} ms | ${c.latencyMs.p95} ms | ${serverP50} | **$${c.costPer1kRunsUsd.toFixed(4)}** |`
     );
