@@ -40,6 +40,13 @@ Single-context repository layout (`GLOSSARY.md` and `docs/adr/` at root). See `d
 - Name domain concepts (glossary terms, UI labels, ticket titles, schema fields) in plain everyday English a learner would understand.
 - Avoid academic or linguistics jargon (e.g. "thought group", "nuclear stress") even when research sources use it; if a plain word collides with an existing term, flag the collision and propose an alternative rather than falling back to jargon.
 
+### 6. Code Simplicity & Anti-Over-Engineering
+- **No TypeScript Gymnastics**: Prefer simple, readable, and idiomatic TypeScript constructs. Avoid clever meta-programming, `as const` tuple indexing (`(typeof FOO)[number]`), and TypeScript `enum`s. Use plain string unions for types (`type LengthTier = "short" | "medium" | ...`) and plain typed arrays (`const ALL_LENGTH_TIERS: LengthTier[] = [...]`) when runtime iteration is needed.
+- **Single Source of Truth**: Centralize and unify domain string literals, IDs, and constants in a single definition; never duplicate hardcoded string arrays across multiple files.
+- **No Redundant Domain Wrappers**: Avoid specialized wrapper functions or cloned functions when generic calculation helpers suffice (e.g. don't write `computeServerLatencyStats` when `computeLatencyStats` already computes latency for any list of numbers). Keep helper functions lean and focused on data shapes.
+- **Standard Math over Arbitrary Special-Cases**: Use standard mathematical or statistical algorithms (e.g., nearest-rank percentile) rather than hardcoding arbitrary special-case conditional branches.
+- **No Speculative Projections or Synthetic Fallbacks**: Never invent speculative metrics, projection models, or synthetic fallback data beyond what the ticket or spec explicitly requires. Prefer clear errors over synthetic fallbacks.
+
 ## Skill Adjustments
 
 Project-specific additions to community skills. Apply them on top of the skill's own instructions.

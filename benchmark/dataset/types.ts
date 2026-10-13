@@ -1,8 +1,11 @@
 export type DatasetPartition = "tuning" | "evaluation";
+export const ALL_DATASET_PARTITIONS: DatasetPartition[] = ["tuning", "evaluation"];
 
 export type ParagraphCategory = "exam" | "everyday" | "learner";
+export const ALL_PARAGRAPH_CATEGORIES: ParagraphCategory[] = ["exam", "everyday", "learner"];
 
 export type LengthTier = "short" | "medium" | "long" | "ceiling";
+export const ALL_LENGTH_TIERS: LengthTier[] = ["short", "medium", "long", "ceiling"];
 
 export type ProsodicChallengeTag =
   | "long-subject"
