@@ -235,7 +235,7 @@ describe("benchmark validator", () => {
       const issues = inspectChunkLengths([shortChunk, normalChunk, longChunk]);
       expect(issues).toHaveLength(2);
       expect(issues[0].issue).toBe("under_target");
-      expect(issues[1].issue).toBe("extreme_long");
+      expect(issues[1].issue).toBe("over_target");
     });
   });
 

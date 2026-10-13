@@ -4,7 +4,6 @@ import type {
   CandidateModelConfig,
   LatencyStats,
   LearnerCostTierProjection,
-  LearnerMonthlyVolumeProjection,
   LengthTier,
   ModelInvocationResult,
   RateCard,
@@ -64,7 +63,11 @@ export function computeLatencyStats(
  * Computes token aggregate statistics.
  */
 export function computeTokenStats(results: readonly ModelInvocationResult[]): TokenStats {
-  if (results.length === 0) {
+  const runsWithTokens = results.filter(
+    (r): r is ModelInvocationResult & { tokens: TokenUsage } => r.tokens !== null
+  );
+
+  if (runsWithTokens.length === 0) {
     return {
       avgPromptTokens: 0,
       avgCompletionTokens: 0,
@@ -79,13 +82,13 @@ export function computeTokenStats(results: readonly ModelInvocationResult[]): To
   let totalCompletion = 0;
   let totalCached = 0;
 
-  for (const r of results) {
+  for (const r of runsWithTokens) {
     totalPrompt += r.tokens.promptTokens;
     totalCompletion += r.tokens.completionTokens;
     totalCached += r.tokens.cachedTokens;
   }
 
-  const count = results.length;
+  const count = runsWithTokens.length;
   return {
     avgPromptTokens: Math.round(totalPrompt / count),
     avgCompletionTokens: Math.round(totalCompletion / count),
@@ -104,7 +107,7 @@ export function aggregateCandidateMetrics(
   results: readonly ModelInvocationResult[]
 ): CandidateAggregateMetrics {
   const totalRuns = results.length;
-  const passedRuns = results.filter((r) => r.validation.isValid).length;
+  const passedRuns = results.filter((r) => r.validation?.isValid === true).length;
   const passRatePercent =
     totalRuns > 0 ? Math.round((passedRuns / totalRuns) * 1000) / 10 : 0;
 
@@ -150,14 +153,7 @@ export const TIER_PROFILES: Record<
 };
 
 /**
- * Standard learner volumes for monthly projections.
- * Assumes 150 practice sessions per learner per month (5 submissions/day * 30 days).
- */
-export const MONTHLY_VOLUME_TIERS: readonly number[] = [100, 500, 1000, 5000];
-export const SESSIONS_PER_LEARNER_MONTH = 150;
-
-/**
- * Calculates Learner Cost Projections across length tiers and monthly volume scales.
+ * Calculates Learner Cost Projections across length tiers.
  */
 export function calculateLearnerCostProjections(
   config: CandidateModelConfig,
@@ -165,7 +161,10 @@ export function calculateLearnerCostProjections(
 ): CandidateCostProjection {
   const tiers: LearnerCostTierProjection[] = (["short", "medium", "long", "ceiling"] as LengthTier[]).map(
     (tier) => {
-      const tierResults = results.filter((r) => r.lengthTier === tier);
+      const tierResults = results.filter(
+        (r): r is ModelInvocationResult & { tokens: TokenUsage } =>
+          r.lengthTier === tier && r.tokens !== null
+      );
       let promptTokens = TIER_PROFILES[tier].defaultPromptTokens;
       let completionTokens = TIER_PROFILES[tier].defaultCompletionTokens;
       let cachedTokens = 0;
@@ -198,27 +197,8 @@ export function calculateLearnerCostProjections(
     }
   );
 
-  // Compute blended average session cost across tiers (weighted 40% short, 40% medium, 15% long, 5% ceiling)
-  const blendedSessionCost =
-    tiers.find((t) => t.tier === "short")!.costPerSessionUsd * 0.4 +
-    tiers.find((t) => t.tier === "medium")!.costPerSessionUsd * 0.4 +
-    tiers.find((t) => t.tier === "long")!.costPerSessionUsd * 0.15 +
-    tiers.find((t) => t.tier === "ceiling")!.costPerSessionUsd * 0.05;
-
-  const volumes: LearnerMonthlyVolumeProjection[] = MONTHLY_VOLUME_TIERS.map((activeLearners) => {
-    const totalSessions = activeLearners * SESSIONS_PER_LEARNER_MONTH;
-    const monthlyCostUsd = totalSessions * blendedSessionCost;
-
-    return {
-      activeLearners,
-      sessionsPerMonth: totalSessions,
-      monthlyCostUsd: Math.round(monthlyCostUsd * 100) / 100,
-    };
-  });
-
   return {
     candidateId: config.id,
     tiers,
-    volumes,
   };
 }

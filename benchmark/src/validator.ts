@@ -192,7 +192,7 @@ export function validateTextIntegrity(
 }
 
 /**
- * Inspects chunk lengths against the 3-10 word target range and detects outliers.
+ * Inspects chunk lengths against the 3-10 word target range.
  */
 export function inspectChunkLengths(chunks: readonly Chunk[]): ChunkLengthIssue[] {
   const issues: ChunkLengthIssue[] = [];
@@ -201,26 +201,12 @@ export function inspectChunkLengths(chunks: readonly Chunk[]): ChunkLengthIssue[
     const wordCount = countChunkWords(chunk);
     const chunkText = chunk.parts.map((p) => p.text).join("").trim();
 
-    if (wordCount === 0) {
-      issues.push({
-        chunkIndex: index,
-        text: chunkText,
-        wordCount,
-        issue: "extreme_short",
-      });
-    } else if (wordCount < 3) {
+    if (wordCount < 3) {
       issues.push({
         chunkIndex: index,
         text: chunkText,
         wordCount,
         issue: "under_target",
-      });
-    } else if (wordCount > 15) {
-      issues.push({
-        chunkIndex: index,
-        text: chunkText,
-        wordCount,
-        issue: "extreme_long",
       });
     } else if (wordCount > 10) {
       issues.push({
@@ -240,7 +226,7 @@ export function inspectChunkLengths(chunks: readonly Chunk[]): ChunkLengthIssue[
  * 1. Valid JSON schema
  * 2. Focus Word singularity (exactly 1 per Chunk)
  * 3. Word-for-word text integrity against raw input
- * 4. Chunk length bounds inspection (3-10 words target)
+ * 4. Chunk length bounds inspection (3-10 words target, no empty or runaway chunks)
  */
 export function validateChunkingOutput(
   rawJsonOrObj: unknown,
@@ -262,6 +248,7 @@ export function validateChunkingOutput(
         chunkLengthBoundsValid: false,
         chunkLengthIssues: [],
         errors: [parseError],
+        parsed: null,
       };
     }
   }
@@ -277,6 +264,7 @@ export function validateChunkingOutput(
       chunkLengthBoundsValid: false,
       chunkLengthIssues: [],
       errors: allErrors,
+      parsed: null,
     };
   }
 
@@ -293,12 +281,18 @@ export function validateChunkingOutput(
   }
 
   const chunkLengthIssues = inspectChunkLengths(chunks);
-  const chunkLengthBoundsValid = chunkLengthIssues.filter(
-    (i) => i.issue === "extreme_short" || i.issue === "extreme_long"
-  ).length === 0;
+  const hasEmptyOrRunawayChunks = chunks.some((c) => {
+    const wc = countChunkWords(c);
+    return wc === 0 || wc > 15;
+  });
+  const chunkLengthBoundsValid = !hasEmptyOrRunawayChunks;
+  if (!chunkLengthBoundsValid) {
+    allErrors.push("Output contains empty chunks (0 words) or runaway chunks exceeding 15 words");
+  }
 
-  // Hard reliability checks: schema, focus word, text integrity
-  const isValid = schemaCheck.valid && focusWordCheck.valid && textIntegrityCheck.valid;
+  // Active validation gate covering all 4 automated checks
+  const isValid =
+    schemaCheck.valid && focusWordCheck.valid && textIntegrityCheck.valid && chunkLengthBoundsValid;
 
   return {
     isValid,
@@ -308,5 +302,6 @@ export function validateChunkingOutput(
     chunkLengthBoundsValid,
     chunkLengthIssues,
     errors: allErrors,
+    parsed: schemaCheck.result,
   };
 }

@@ -9,7 +9,6 @@ import {
 } from "./prompt";
 import type {
   CandidateModelId,
-  ChunkingResult,
   ModelInvocationResult,
   TokenUsage,
 } from "./types";
@@ -54,9 +53,12 @@ export function resolveEndpoint(candidateId: CandidateModelId): string {
     return rawUrl;
   }
 
-  // If a base resource host, append standard Azure deployment path
+  // Append model-appropriate deployment path
   const baseUrl = rawUrl.replace(/\/+$/, "");
-  return `${baseUrl}/openai/deployments/${candidateId}/chat/completions?api-version=2024-10-21`;
+  if (config.deploymentType === "Azure OpenAI") {
+    return `${baseUrl}/openai/deployments/${candidateId}/chat/completions?api-version=2024-10-21`;
+  }
+  return `${baseUrl}/models/chat/completions?api-version=2024-05-01-preview`;
 }
 
 interface AzureChatCompletionResponse {
@@ -154,17 +156,6 @@ async function executeHttpCall(
 }
 
 /**
- * Safely parses ChunkingResult JSON without throwing.
- */
-function safelyParseChunkingJson(rawContent: string): ChunkingResult | null {
-  try {
-    return JSON.parse(rawContent) as ChunkingResult;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Constructs a structured ModelInvocationResult for invocation errors.
  */
 export function createInvocationFailureResult(
@@ -182,18 +173,10 @@ export function createInvocationFailureResult(
     wordCount: paragraph.wordCount,
     rawResponse: "",
     parsed: null,
-    validation: {
-      isValid: false,
-      schemaValid: false,
-      focusWordValid: false,
-      textIntegrityValid: false,
-      chunkLengthBoundsValid: false,
-      chunkLengthIssues: [],
-      errors: [`Model invocation failed: ${errorMessage}`],
-    },
+    validation: null,
     roundTripMs,
     serverProcessingMs: null,
-    tokens: { promptTokens: 0, completionTokens: 0, cachedTokens: 0 },
+    tokens: null,
     costUsd: 0,
     error: errorMessage,
   };
@@ -237,7 +220,7 @@ export async function invokeCandidateModel(
       characterCount: paragraph.characterCount,
       wordCount: paragraph.wordCount,
       rawResponse: rawContent,
-      parsed: safelyParseChunkingJson(rawContent),
+      parsed: validation.parsed,
       validation,
       roundTripMs,
       serverProcessingMs,

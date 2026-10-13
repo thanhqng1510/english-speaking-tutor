@@ -60,6 +60,7 @@ describe("benchmark reporter", () => {
         chunkLengthBoundsValid: true,
         chunkLengthIssues: [],
         errors: [],
+        parsed: null,
       },
       roundTripMs: 195,
       serverProcessingMs: 140,

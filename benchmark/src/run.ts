@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as path from "path";
 import { getParagraphs, type DatasetPartition, type PracticeParagraph } from "../dataset";
 import { getCandidateConfig } from "./candidates";
@@ -146,13 +147,18 @@ async function evaluateCandidate(
     const result = await invokeCandidateModel(candidateId, paragraph, config.clientOptions);
     results.push(result);
 
-    if (result.validation.isValid) {
+    if (result.validation?.isValid) {
       candidatePasses++;
       console.log(`✓ PASS (${result.roundTripMs} ms, $${result.costUsd.toFixed(6)})`);
     } else {
       console.log(`✗ FAIL (${result.roundTripMs} ms)`);
-      for (const err of result.validation.errors) {
-        console.log(`    - ${err}`);
+      if (result.error) {
+        console.log(`    - ${result.error}`);
+      }
+      if (result.validation) {
+        for (const err of result.validation.errors) {
+          console.log(`    - ${err}`);
+        }
       }
     }
 
@@ -205,13 +211,9 @@ function printCompletionSummary(markdownPath: string, jsonPath: string): void {
 
 export function loadEnvironmentFiles(): void {
   for (const envFile of [".env.local", ".env"]) {
-    try {
-      const fullPath = path.resolve(process.cwd(), envFile);
-      if (typeof (process as unknown as { loadEnvFile?: (path?: string) => void }).loadEnvFile === "function") {
-        (process as unknown as { loadEnvFile: (path?: string) => void }).loadEnvFile(fullPath);
-      }
-    } catch {
-      // Ignore if file does not exist
+    const fullPath = path.resolve(process.cwd(), envFile);
+    if (fs.existsSync(fullPath) && typeof process.loadEnvFile === "function") {
+      process.loadEnvFile(fullPath);
     }
   }
 }

@@ -114,6 +114,7 @@ describe("benchmark metrics and cost calculations", () => {
             chunkLengthBoundsValid: true,
             chunkLengthIssues: [],
             errors: [],
+            parsed: null,
           },
           roundTripMs: 180,
           serverProcessingMs: 120,
@@ -138,6 +139,7 @@ describe("benchmark metrics and cost calculations", () => {
             chunkLengthBoundsValid: true,
             chunkLengthIssues: [],
             errors: ["Focus Word missing"],
+            parsed: null,
           },
           roundTripMs: 220,
           serverProcessingMs: 150,
@@ -160,20 +162,14 @@ describe("benchmark metrics and cost calculations", () => {
   describe("calculateLearnerCostProjections", () => {
     const config = CANDIDATE_MODELS["phi-4-mini-instruct"];
 
-    it("projects costs across 4 tiers and active learner volumes", () => {
+    it("projects costs across 4 length tiers", () => {
       const proj = calculateLearnerCostProjections(config, []);
 
       expect(proj.tiers).toHaveLength(4);
       expect(proj.tiers.map((t) => t.tier)).toEqual(["short", "medium", "long", "ceiling"]);
       for (const t of proj.tiers) {
         expect(t.costPerSessionUsd).toBeGreaterThan(0);
-      }
-
-      expect(proj.volumes).toHaveLength(4);
-      expect(proj.volumes.map((v) => v.activeLearners)).toEqual([100, 500, 1000, 5000]);
-      for (const v of proj.volumes) {
-        expect(v.monthlyCostUsd).toBeGreaterThan(0);
-        expect(v.sessionsPerMonth).toBe(v.activeLearners * 150);
+        expect(t.averageCharacters).toBeGreaterThan(0);
       }
     });
   });

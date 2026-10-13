@@ -51,7 +51,7 @@ export interface ChunkLengthIssue {
   readonly chunkIndex: number;
   readonly text: string;
   readonly wordCount: number;
-  readonly issue: "under_target" | "over_target" | "extreme_short" | "extreme_long";
+  readonly issue: "under_target" | "over_target";
 }
 
 export interface ValidationResult {
@@ -62,6 +62,7 @@ export interface ValidationResult {
   readonly chunkLengthBoundsValid: boolean;
   readonly chunkLengthIssues: readonly ChunkLengthIssue[];
   readonly errors: readonly string[];
+  readonly parsed: ChunkingResult | null;
 }
 
 export interface TokenUsage {
@@ -79,10 +80,10 @@ export interface ModelInvocationResult {
   readonly wordCount: number;
   readonly rawResponse: string;
   readonly parsed: ChunkingResult | null;
-  readonly validation: ValidationResult;
+  readonly validation: ValidationResult | null;
   readonly roundTripMs: number;
   readonly serverProcessingMs: number | null;
-  readonly tokens: TokenUsage;
+  readonly tokens: TokenUsage | null;
   readonly costUsd: number;
   readonly error: string | null;
 }
@@ -127,16 +128,9 @@ export interface LearnerCostTierProjection {
   readonly costPerSessionUsd: number;
 }
 
-export interface LearnerMonthlyVolumeProjection {
-  readonly activeLearners: number;
-  readonly sessionsPerMonth: number;
-  readonly monthlyCostUsd: number;
-}
-
 export interface CandidateCostProjection {
   readonly candidateId: CandidateModelId;
   readonly tiers: readonly LearnerCostTierProjection[];
-  readonly volumes: readonly LearnerMonthlyVolumeProjection[];
 }
 
 export interface BenchmarkRunReportData {

@@ -16,12 +16,17 @@ describe("benchmark client", () => {
     }
   });
 
-  it("expands base host environment variable to standard Azure deployment chat completions path", () => {
+  it("expands base host environment variable to model-appropriate Azure deployment path", () => {
     process.env.AZURE_AI_ENDPOINT = "https://custom.cognitiveservices.azure.com";
     try {
-      const endpoint = resolveEndpoint("gpt-6-luna");
-      expect(endpoint).toBe(
+      const openAiEndpoint = resolveEndpoint("gpt-6-luna");
+      expect(openAiEndpoint).toBe(
         "https://custom.cognitiveservices.azure.com/openai/deployments/gpt-6-luna/chat/completions?api-version=2024-10-21"
+      );
+
+      const foundryEndpoint = resolveEndpoint("phi-4-mini-instruct");
+      expect(foundryEndpoint).toBe(
+        "https://custom.cognitiveservices.azure.com/models/chat/completions?api-version=2024-05-01-preview"
       );
     } finally {
       delete process.env.AZURE_AI_ENDPOINT;
@@ -99,13 +104,15 @@ describe("benchmark client", () => {
 
     expect(result.candidateId).toBe("claude-haiku-5-5");
     expect(result.paragraphId).toBe(paragraph.id);
-    expect(result.validation.isValid).toBe(true);
-    expect(result.validation.schemaValid).toBe(true);
-    expect(result.validation.focusWordValid).toBe(true);
-    expect(result.validation.textIntegrityValid).toBe(true);
-    expect(result.tokens.promptTokens).toBe(120);
-    expect(result.tokens.completionTokens).toBe(45);
-    expect(result.tokens.cachedTokens).toBe(20);
+    expect(result.validation).not.toBeNull();
+    expect(result.validation?.isValid).toBe(true);
+    expect(result.validation?.schemaValid).toBe(true);
+    expect(result.validation?.focusWordValid).toBe(true);
+    expect(result.validation?.textIntegrityValid).toBe(true);
+    expect(result.tokens).not.toBeNull();
+    expect(result.tokens?.promptTokens).toBe(120);
+    expect(result.tokens?.completionTokens).toBe(45);
+    expect(result.tokens?.cachedTokens).toBe(20);
     expect(result.serverProcessingMs).toBe(142);
     expect(result.costUsd).toBeGreaterThan(0);
     expect(result.error).toBeNull();
@@ -133,7 +140,8 @@ describe("benchmark client", () => {
     });
 
     expect(result.candidateId).toBe("phi-4-mini-instruct");
-    expect(result.validation.isValid).toBe(false);
+    expect(result.validation).toBeNull();
+    expect(result.tokens).toBeNull();
     expect(result.error).toContain("Azure API error (429 Too Many Requests)");
     expect(result.costUsd).toBe(0);
     expect(result.parsed).toBeNull();

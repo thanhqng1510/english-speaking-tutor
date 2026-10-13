@@ -67,9 +67,7 @@ export function renderLearnerCostSimulatorSection(
   const lines: string[] = [
     `## 2. Real-World Learner Cost Simulator`,
     ``,
-    `Projected costs across practice paragraph length tiers and active learner volumes (assumes 150 practice sessions per learner/month):`,
-    ``,
-    `### Per-Session Cost by Paragraph Length Tier`,
+    `Projected per-session costs across practice paragraph length tiers based on 2026 rate cards:`,
     ``,
     `| Candidate Model | Short (~150 chars) | Medium (~300 chars) | Long (~500 chars) | Ceiling (1,200 chars) |`,
     `| :--- | :--- | :--- | :--- | :--- |`,
@@ -84,27 +82,6 @@ export function renderLearnerCostSimulatorSection(
       const ceilCost = proj.tiers.find((t) => t.tier === "ceiling")?.costPerSessionUsd ?? 0;
       lines.push(
         `| **${c.candidateName}** | $${shortCost.toFixed(6)} | $${medCost.toFixed(6)} | $${longCost.toFixed(6)} | $${ceilCost.toFixed(6)} |`
-      );
-    }
-  }
-  lines.push(``);
-
-  lines.push(`### Monthly Active Learner Projections`);
-  lines.push(``);
-  lines.push(
-    `| Candidate Model | 100 Learners (15k calls) | 500 Learners (75k calls) | 1,000 Learners (150k calls) | 5,000 Learners (750k calls) |`
-  );
-  lines.push(`| :--- | :--- | :--- | :--- | :--- |`);
-
-  for (const c of candidates) {
-    const proj = costProjections[c.candidateId];
-    if (proj) {
-      const cost100Learners = proj.volumes.find((v) => v.activeLearners === 100)?.monthlyCostUsd ?? 0;
-      const cost500Learners = proj.volumes.find((v) => v.activeLearners === 500)?.monthlyCostUsd ?? 0;
-      const cost1000Learners = proj.volumes.find((v) => v.activeLearners === 1000)?.monthlyCostUsd ?? 0;
-      const cost5000Learners = proj.volumes.find((v) => v.activeLearners === 5000)?.monthlyCostUsd ?? 0;
-      lines.push(
-        `| **${c.candidateName}** | $${cost100Learners.toFixed(2)} | $${cost500Learners.toFixed(2)} | $${cost1000Learners.toFixed(2)} | $${cost5000Learners.toFixed(2)} |`
       );
     }
   }
@@ -133,7 +110,7 @@ export function renderLatencyAndTokenBreakdownSection(
 
 export function renderReliabilitySection(results: readonly ModelInvocationResult[]): string[] {
   const lines: string[] = [];
-  const failedResults = results.filter((r) => !r.validation.isValid || r.error !== null);
+  const failedResults = results.filter((r) => !r.validation?.isValid || r.error !== null);
 
   lines.push(`## 4. Reliability & Validation Failures`);
   lines.push(``);
@@ -145,8 +122,10 @@ export function renderReliabilitySection(results: readonly ModelInvocationResult
     lines.push(``);
     for (const f of failedResults) {
       lines.push(`- **Model:** \`${f.candidateId}\` | **Paragraph:** \`${f.paragraphId}\` (${f.paragraphTitle})`);
-      for (const err of f.validation.errors) {
-        lines.push(`  - ❌ ${err}`);
+      if (f.validation) {
+        for (const err of f.validation.errors) {
+          lines.push(`  - ❌ ${err}`);
+        }
       }
       if (f.error) {
         lines.push(`  - ⚠️ System Error: ${f.error}`);
@@ -155,13 +134,13 @@ export function renderReliabilitySection(results: readonly ModelInvocationResult
   }
   lines.push(``);
 
-  const lengthOutliers = results.filter((r) => r.validation.chunkLengthIssues.length > 0);
+  const lengthOutliers = results.filter((r) => (r.validation?.chunkLengthIssues.length ?? 0) > 0);
   lines.push(`### Chunk Length Bounds Inspection`);
   lines.push(``);
   if (lengthOutliers.length === 0) {
     lines.push(`✅ All generated Chunks across all candidates fell within the 3–10 word target range.`);
   } else {
-    const extremeOutliers = results.filter((r) => !r.validation.chunkLengthBoundsValid);
+    const extremeOutliers = results.filter((r) => r.validation && !r.validation.chunkLengthBoundsValid);
     if (extremeOutliers.length > 0) {
       lines.push(`⚠️ **Extreme Outliers (< 1 or > 15 words):** ${extremeOutliers.length} invocation(s) flagged.`);
     } else {
@@ -170,8 +149,10 @@ export function renderReliabilitySection(results: readonly ModelInvocationResult
     lines.push(``);
     for (const item of lengthOutliers) {
       lines.push(`- **Model:** \`${item.candidateId}\` | **Paragraph:** \`${item.paragraphId}\``);
-      for (const issue of item.validation.chunkLengthIssues) {
-        lines.push(`  - Chunk ${issue.chunkIndex + 1} (${issue.wordCount} words, ${issue.issue}): "${issue.text}"`);
+      if (item.validation) {
+        for (const issue of item.validation.chunkLengthIssues) {
+          lines.push(`  - Chunk ${issue.chunkIndex + 1} (${issue.wordCount} words, ${issue.issue}): "${issue.text}"`);
+        }
       }
     }
   }
